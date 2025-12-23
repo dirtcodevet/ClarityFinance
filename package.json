@@ -25,16 +25,21 @@
         "nsis"
       ]
     },
-	"nsis": {
-	  "oneClick": false,
-	  "perMachine": true, 
-	  "allowToChangeInstallationDirectory": true,
-	  "createDesktopShortcut": "always",
-	  "createStartMenuShortcut": true,
-	  "shortcutName": "Clarity Finance",
-	  "uninstallDisplayName": "Clarity Finance",
-	  "runAfterFinish": true
-},
+    "publish": [
+      {
+        "provider": "github"
+      }
+    ],
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Clarity Finance",
+      "uninstallDisplayName": "Clarity Finance",
+      "runAfterFinish": true
+    },
     "files": [
       "**/*",
       "!**/*.md",
@@ -54,6 +59,7 @@
   },
   "dependencies": {
     "better-sqlite3": "^12.5.0",
+    "electron-updater": "^6.6.2",
     "flatpickr": "^4.6.13",
     "zod": "^3.22.4"
   }
