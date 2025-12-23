@@ -41,13 +41,21 @@
       "runAfterFinish": true
     },
     "files": [
-      "**/*",
-      "!**/*.md",
-      "!docs/**/*",
-      "!tests/**/*",
-      "!.eslintrc.js",
-      "!jest.config.js"
-    ]
+	  "**/*",
+	  "!**/*.md",
+	  "!docs/**/*",
+	  "!tests/**/*",
+	  "!.eslintrc.js",
+	  "!jest.config.js",
+	  "!Backups/**/*",
+	  "!.claude/**/*",
+      "!dist/**/*",
+      "!win-unpacked/**/*",
+	  "!**/*.log",
+	  "!**/*.zip",
+	  "!**/*.7z"
+	]
+
   },
   "devDependencies": {
     "@electron/rebuild": "^3.7.2",
