@@ -29,10 +29,11 @@ let mainWindow = null;
  */
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
+    width: 1920,
+    height: 1080,
     minWidth: 1024,
     minHeight: 700,
+	icon: path.join(__dirname, "assets", "icon.ico"),
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
