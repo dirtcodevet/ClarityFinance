@@ -1,0 +1,547 @@
+/**
+ * Clarity Finance - Ledger Page Styles
+ * 
+ * Styles specific to the Ledger page including:
+ * - Date range selector
+ * - Transaction quick-add bar
+ * - Transaction table with inline editing
+ * - Inline dropdown cells
+ */
+
+/* ============================================================
+   Ledger Page Layout
+   ============================================================ */
+.page-ledger {
+  flex-direction: column;
+  gap: var(--space-5);
+  height: 100%;
+}
+
+/* Override display:block from .page.active to use flex */
+.page-ledger.active {
+  display: flex;
+}
+
+.ledger-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.ledger-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ledger-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ============================================================
+   Date Range Selector (Ledger-specific)
+   ============================================================ */
+.ledger-date-range {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+}
+
+.ledger-date-range label {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-weight: var(--font-medium);
+}
+
+.ledger-date-range .date-separator {
+  color: var(--text-muted);
+}
+
+.ledger-date-range input[type="date"] {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-family: var(--font-primary);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.ledger-date-range input[type="date"]:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  background-color: var(--bg-card);
+}
+
+.ledger-date-range input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.ledger-date-range input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* ============================================================
+   Ledger Card
+   ============================================================ */
+.ledger-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ledger-card .card-body {
+  flex: 1;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   Transaction Quick Add Bar
+   ============================================================ */
+.transaction-quick-add {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background-color: var(--bg-input);
+  border-bottom: 1px solid var(--border-light);
+  flex-wrap: wrap;
+}
+
+.transaction-quick-add .quick-add-field {
+  min-width: 100px;
+}
+
+.transaction-quick-add .quick-add-field.field-type {
+  flex: 0 0 120px;
+}
+
+.transaction-quick-add .quick-add-field.field-bucket {
+  flex: 0 0 150px;
+}
+
+.transaction-quick-add .quick-add-field.field-category {
+  flex: 0 0 150px;
+}
+
+.transaction-quick-add .quick-add-field.field-description {
+  flex: 2;
+  min-width: 150px;
+}
+
+.transaction-quick-add .quick-add-field.field-amount {
+  flex: 0 0 120px;
+}
+
+.transaction-quick-add .quick-add-field.field-date {
+  flex: 0 0 140px;
+}
+
+.transaction-quick-add .quick-add-field.field-account {
+  flex: 0 0 150px;
+}
+
+/* Hide fields based on transaction type */
+.transaction-quick-add[data-type="income"] .expense-only {
+  display: none;
+}
+
+/* ============================================================
+   Ledger Table Container
+   ============================================================ */
+.ledger-table-container {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+/* ============================================================
+   Ledger Transaction Table
+   ============================================================ */
+.ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.ledger-table th {
+  position: sticky;
+  top: 0;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  background-color: var(--bg-input);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-light);
+  z-index: 10;
+}
+
+.ledger-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+
+.ledger-table tbody tr:hover {
+  background-color: var(--bg-input);
+}
+
+.ledger-table tbody tr:hover .inline-dropdown-trigger {
+  opacity: 1;
+}
+
+/* Column widths */
+.ledger-table .col-date {
+  width: 110px;
+  white-space: nowrap;
+}
+
+.ledger-table .col-type {
+  width: 80px;
+}
+
+.ledger-table .col-description {
+  min-width: 150px;
+}
+
+.ledger-table .col-category {
+  width: 140px;
+}
+
+.ledger-table .col-bucket {
+  width: 150px;
+}
+
+.ledger-table .col-amount {
+  width: 110px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-table .col-account {
+  width: 140px;
+}
+
+.ledger-table .col-actions {
+  width: 90px;
+  text-align: right;
+}
+
+/* Type badge */
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-full);
+  text-transform: capitalize;
+}
+
+.type-badge.type-income {
+  background-color: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.type-badge.type-expense {
+  background-color: var(--color-error-light);
+  color: var(--color-error);
+}
+
+/* Amount formatting */
+.amount-income {
+  color: var(--color-success);
+}
+
+.amount-expense {
+  color: var(--color-error);
+}
+
+/* ============================================================
+   Inline Dropdown Cell
+   ============================================================ */
+.inline-dropdown-cell {
+  position: relative;
+  cursor: pointer;
+}
+
+.inline-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  min-height: 28px;
+}
+
+.inline-dropdown-trigger:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.inline-dropdown-trigger .dropdown-arrow {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.inline-dropdown-cell:hover .dropdown-arrow,
+.inline-dropdown-cell.active .dropdown-arrow {
+  opacity: 1;
+}
+
+.inline-dropdown-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inline-dropdown-value.empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Dropdown menu */
+.inline-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-dropdown);
+  display: none;
+}
+
+.inline-dropdown-cell.active .inline-dropdown-menu {
+  display: block;
+}
+
+.inline-dropdown-option {
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: background-color var(--transition-fast);
+}
+
+.inline-dropdown-option:hover {
+  background-color: var(--bg-input);
+}
+
+.inline-dropdown-option.selected {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: var(--color-blue);
+  font-weight: var(--font-medium);
+}
+
+.inline-dropdown-option.disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.inline-dropdown-option.disabled:hover {
+  background-color: transparent;
+}
+
+/* Dropdown group header */
+.inline-dropdown-group {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background-color: var(--bg-input);
+  border-bottom: 1px solid var(--border-light);
+  position: sticky;
+  top: 0;
+}
+
+/* ============================================================
+   Inline Date Picker Cell
+   ============================================================ */
+.inline-date-cell {
+  position: relative;
+}
+
+.inline-date-cell input[type="date"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.inline-date-display {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.inline-date-cell:hover .inline-date-display {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.inline-date-display .calendar-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.inline-date-cell:hover .calendar-icon {
+  opacity: 1;
+}
+
+/* ============================================================
+   Empty State
+   ============================================================ */
+.ledger-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.ledger-empty-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--space-4);
+  opacity: 0.5;
+}
+
+.ledger-empty-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.ledger-empty-text {
+  font-size: var(--text-sm);
+  max-width: 300px;
+}
+
+/* ============================================================
+   Add Transaction Button (in header)
+   ============================================================ */
+.btn-add-transaction {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ============================================================
+   Transaction Count Badge
+   ============================================================ */
+.transaction-count {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.transaction-count strong {
+  color: var(--text-primary);
+  font-weight: var(--font-semibold);
+}
+
+/* ============================================================
+   Undo Toast
+   ============================================================ */
+.undo-toast {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--bg-sidebar);
+  color: var(--text-inverse);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-tooltip);
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-normal);
+}
+
+.undo-toast.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  visibility: visible;
+}
+
+.undo-toast-message {
+  font-size: var(--text-sm);
+}
+
+.undo-toast-btn {
+  padding: var(--space-1) var(--space-3);
+  background-color: var(--color-blue);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.undo-toast-btn:hover {
+  background-color: #2563EB;
+}
+
+.undo-toast-dismiss {
+  padding: var(--space-1);
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.undo-toast-dismiss:hover {
+  color: var(--text-inverse);
+}
+
+.undo-toast-dismiss svg {
+  width: 16px;
+  height: 16px;
+}

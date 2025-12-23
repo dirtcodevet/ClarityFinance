@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;">
+  <title>Clarity Finance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/variables.css">
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/budget.css">
+  <link rel="stylesheet" href="styles/ledger.css">
+  <link rel="stylesheet" href="styles/dashboard.css">
+  <link rel="stylesheet" href="styles/planning.css">
+</head>
+<body>
+  <div class="app">
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <span class="user-name" id="userName">User</span>
+        <button class="btn-icon btn-icon-light" id="editNameBtn" title="Edit name">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        </button>
+      </div>
+      <ul class="nav-list">
+        <li class="nav-item active" data-page="dashboard"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg><span class="nav-label">Dashboard</span></li>
+        <li class="nav-item" data-page="ledger"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg><span class="nav-label">Ledger</span></li>
+        <li class="nav-item" data-page="budget"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M12 8v8"></path><path d="M8 12h8"></path></svg><span class="nav-label">Budget</span></li>
+        <li class="nav-item" data-page="planning"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg><span class="nav-label">Planning</span></li>
+        <li class="nav-item" data-page="data"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg><span class="nav-label">Data</span></li>
+      </ul>
+    </nav>
+    <main class="main-content">
+      <header class="header">
+        <div class="header-left"><h1 class="page-title" id="pageTitle">Dashboard</h1></div>
+        <div class="header-right">
+          <div class="month-selector">
+            <button class="btn-icon" id="prevMonth" title="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+            <span class="current-month" id="currentMonth">January 2024</span>
+            <button class="btn-icon" id="nextMonth" title="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+          </div>
+          <button class="btn btn-primary" id="saveBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>Save</button>
+        </div>
+      </header>
+      <div class="page-content">
+        <!-- Dashboard Page (Phase 3) -->
+        <div class="page page-dashboard active" id="page-dashboard">
+          <div class="dashboard-layout">
+            <!-- Summary Banner -->
+            <section class="dashboard-summary" id="dashboard-summary">
+              <div class="dashboard-loading">Loading dashboard data...</div>
+            </section>
+            
+            <!-- Balance Projection Chart -->
+            <section class="chart-card">
+              <div class="chart-header">
+                <h3 class="chart-title">Balance Projection</h3>
+                <div class="chart-controls">
+                  <div class="chart-date-range">
+                    <label>From</label>
+                    <input type="date" id="projection-start-date">
+                    <label>To</label>
+                    <input type="date" id="projection-end-date">
+                  </div>
+                </div>
+              </div>
+              <div class="chart-body">
+                <div class="chart-container" id="balance-chart-container">
+                  <canvas id="balance-chart"></canvas>
+                </div>
+              </div>
+            </section>
+            
+            <!-- Two Column Charts Row -->
+            <div class="charts-row">
+              <!-- Budget vs Expense Chart -->
+              <section class="chart-card">
+                <div class="chart-header">
+                  <h3 class="chart-title">Budget vs Actual</h3>
+                </div>
+                <div class="chart-body">
+                  <div class="chart-container" id="budget-expense-chart-container">
+                    <canvas id="budget-expense-chart"></canvas>
+                  </div>
+                </div>
+                <div class="category-filter" id="category-filter">
+                  <!-- Category filter chips rendered by JS -->
+                </div>
+              </section>
+              
+              <!-- Goals Progress Section -->
+              <section class="goals-section">
+                <div class="goals-header">
+                  <h3 class="goals-title">Goals Progress</h3>
+                </div>
+                <div class="goals-body">
+                  <div class="goals-progress" id="goals-progress">
+                    <!-- Goals rendered by JS -->
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Ledger Page (Phase 2) -->
+        <div class="page page-ledger" id="page-ledger">
+          <!-- Ledger Header -->
+          <div class="ledger-header">
+            <div class="ledger-header-left">
+              <div class="ledger-date-range">
+                <label>From</label>
+                <input type="date" id="ledger-start-date">
+                <span class="date-separator">to</span>
+                <input type="date" id="ledger-end-date">
+              </div>
+              <span class="transaction-count" id="ledger-transaction-count">
+                <strong>0</strong> transactions
+              </span>
+            </div>
+            <div class="ledger-header-right">
+              <button class="btn btn-primary btn-add-transaction" id="btn-add-transaction">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add Transaction
+              </button>
+            </div>
+          </div>
+          
+          <!-- Ledger Card -->
+          <div class="card ledger-card">
+            <div class="card-header header-blue">
+              <h3 class="card-title">Transactions</h3>
+            </div>
+            
+            <!-- Quick Add Bar -->
+            <div class="transaction-quick-add" id="ledger-quick-add" data-type="expense">
+              <div class="quick-add-field field-type">
+                <label class="quick-add-label">Type</label>
+                <select class="quick-add-select" name="type">
+                  <option value="expense">Expense</option>
+                  <option value="income">Income</option>
+                </select>
+              </div>
+              <div class="quick-add-field field-bucket expense-only">
+                <label class="quick-add-label">Bucket</label>
+                <select class="quick-add-select" name="bucket_id">
+                  <option value="">Select bucket...</option>
+                </select>
+              </div>
+              <div class="quick-add-field field-category expense-only">
+                <label class="quick-add-label">Category</label>
+                <select class="quick-add-select" name="category_id">
+                  <option value="">Select category...</option>
+                </select>
+              </div>
+              <div class="quick-add-field field-description">
+                <label class="quick-add-label">Description</label>
+                <input type="text" class="quick-add-input" name="description" placeholder="Transaction description...">
+              </div>
+              <div class="quick-add-field field-amount">
+                <label class="quick-add-label">Amount</label>
+                <input type="number" class="quick-add-input" name="amount" placeholder="0.00" step="0.01" min="0.01">
+              </div>
+              <div class="quick-add-field field-date">
+                <label class="quick-add-label">Date</label>
+                <input type="date" class="quick-add-input" name="date">
+              </div>
+              <div class="quick-add-field field-account">
+                <label class="quick-add-label">Account</label>
+                <select class="quick-add-select" name="account_id">
+                  <option value="">Select account...</option>
+                </select>
+              </div>
+              <button class="quick-add-submit" title="Add Transaction">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </button>
+            </div>
+            
+            <!-- Transaction Table -->
+            <div class="card-body">
+              <div class="ledger-table-container">
+                <table class="ledger-table">
+                  <thead>
+                    <tr>
+                      <th class="col-date">Date</th>
+                      <th class="col-type">Type</th>
+                      <th class="col-description">Description</th>
+                      <th class="col-category">Category</th>
+                      <th class="col-bucket">Bucket</th>
+                      <th class="col-amount">Amount</th>
+                      <th class="col-account">Account</th>
+                      <th class="col-actions">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ledger-table-body">
+                    <!-- Transactions rendered here -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Budget Page (Phase 1) -->
+        <div class="page" id="page-budget">
+          <div class="budget-layout">
+            <div class="budget-top-row">
+              <div class="card" id="accounts-card">
+                <div class="card-header header-blue"><h3 class="card-title">Accounts</h3></div>
+                <div class="quick-add-bar">
+                  <div class="quick-add-field"><label class="quick-add-label">Bank Name</label><input type="text" class="quick-add-input" id="account-name" placeholder="e.g., Chase"></div>
+                  <div class="quick-add-field field-small"><label class="quick-add-label">Type</label><select class="quick-add-select" id="account-type"><option value="checking">Checking</option><option value="savings">Savings</option><option value="credit">Credit</option><option value="ira">IRA</option><option value="other">Other</option></select></div>
+                  <div class="quick-add-field field-small"><label class="quick-add-label">Balance</label><input type="number" class="quick-add-input" id="account-balance" placeholder="0.00" step="0.01"></div>
+                  <button class="quick-add-submit" id="add-account-btn" title="Add Account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+                </div>
+                <div class="card-body"><div class="data-table-container"><table class="data-table" id="accounts-table"><thead><tr><th>Bank</th><th>Type</th><th class="col-currency">Balance</th><th class="col-actions">Actions</th></tr></thead><tbody id="accounts-list"></tbody></table><div class="table-empty" id="accounts-empty">No accounts yet. Add one above.</div></div></div>
+              </div>
+              <div class="card" id="income-card">
+                <div class="card-header header-green"><h3 class="card-title">Income Sources</h3></div>
+                <div class="quick-add-bar">
+                  <div class="quick-add-field"><label class="quick-add-label">Source</label><input type="text" class="quick-add-input" id="income-name" placeholder="e.g., Employer"></div>
+                  <div class="quick-add-field field-small"><label class="quick-add-label">Type</label><select class="quick-add-select" id="income-type"><option value="w2">W2</option><option value="1099">1099</option><option value="investment">Investment</option><option value="rental">Rental</option><option value="other">Other</option></select></div>
+                  <div class="quick-add-field field-small"><label class="quick-add-label">Amount</label><input type="number" class="quick-add-input" id="income-amount" placeholder="0.00" step="0.01"></div>
+                  <div class="quick-add-field field-small"><label class="quick-add-label">Account</label><select class="quick-add-select" id="income-account"></select></div>
+                  <button class="quick-add-submit" id="add-income-btn" title="Add Income"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+                </div>
+                <div class="card-body"><div class="data-table-container"><table class="data-table" id="income-table"><thead><tr><th>Source</th><th>Type</th><th class="col-currency">Amount</th><th class="col-actions">Actions</th></tr></thead><tbody id="income-list"></tbody></table><div class="table-empty" id="income-empty">No income sources yet. Add one above.</div></div></div>
+              </div>
+            </div>
+            <div class="card" id="categories-card">
+              <div class="card-header header-purple"><h3 class="card-title">Categories</h3></div>
+              <div class="quick-add-bar">
+                <div class="quick-add-field"><label class="quick-add-label">Category Name</label><input type="text" class="quick-add-input" id="category-name" placeholder="e.g., Groceries"></div>
+                <div class="quick-add-field"><label class="quick-add-label">Bucket</label><select class="quick-add-select" id="category-bucket"></select></div>
+                <button class="quick-add-submit" id="add-category-btn" title="Add Category"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+              </div>
+              <div class="card-body"><div class="categories-grid" id="categories-grid"></div><div class="table-empty" id="categories-empty">No categories yet. Add one above.</div></div>
+            </div>
+            <div class="buckets-grid" id="buckets-container"></div>
+            <div class="card card-full-width" id="goals-card">
+              <div class="card-header header-pink"><h3 class="card-title">Goals & Non-Standard Expenses</h3></div>
+              <div class="quick-add-bar">
+                <div class="quick-add-field"><label class="quick-add-label">Goal Name</label><input type="text" class="quick-add-input" id="goal-name" placeholder="e.g., Emergency Fund"></div>
+                <div class="quick-add-field field-small"><label class="quick-add-label">Target</label><input type="number" class="quick-add-input" id="goal-target" placeholder="0.00" step="0.01"></div>
+                <div class="quick-add-field field-small"><label class="quick-add-label">Target Date</label><input type="date" class="quick-add-input" id="goal-date"></div>
+                <button class="quick-add-submit" id="add-goal-btn" title="Add Goal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+              </div>
+              <div class="card-body"><div class="goals-grid" id="goals-list"></div><div class="table-empty" id="goals-empty">No goals yet. Add one above to start saving!</div></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Planning Page (Phase 4) -->
+        <div class="page" id="page-planning">
+          <div class="planning-layout">
+            <!-- Explanation Box -->
+            <section class="planning-explanation">
+              <h3 class="planning-explanation-title">What-If Planning Sandbox</h3>
+              <p class="planning-explanation-text">This is your financial planning playground. Experiment with different scenarios by adjusting income, expenses, and goals. All changes here are temporary and won't affect your real budget data. Use the Refresh button to reset to your current budget, or Save to store a scenario for later.</p>
+            </section>
+
+            <!-- Control Buttons -->
+            <div class="planning-controls">
+              <button class="btn-planning-refresh" id="planning-refresh-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <polyline points="1 20 1 14 7 14"></polyline>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                Refresh to Defaults
+              </button>
+              <button class="btn-planning-save" id="planning-save-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                Save Scenario
+              </button>
+            </div>
+
+            <!-- Balance Projection Chart -->
+            <section class="planning-projection-card">
+              <div class="planning-projection-header">
+                <h3 class="planning-projection-title">Balance Projection</h3>
+                <div class="planning-projection-date-range">
+                  <label>From</label>
+                  <input type="date" id="projection-start-date">
+                  <label>To</label>
+                  <input type="date" id="projection-end-date">
+                </div>
+              </div>
+              <div class="planning-projection-body">
+                <div class="planning-projection-chart-container">
+                  <canvas id="planning-projection-chart"></canvas>
+                </div>
+              </div>
+            </section>
+
+            <!-- Planning Data Section -->
+            <div class="planning-data-section">
+              <!-- Main Column -->
+              <div class="planning-data-main">
+                <!-- Accounts Card -->
+                <div class="planning-card">
+                  <div class="planning-card-header header-blue">
+                    <h3 class="planning-card-title">Accounts</h3>
+                  </div>
+                  <div class="quick-add-bar">
+                    <div class="quick-add-field"><label class="quick-add-label">Bank Name</label><input type="text" class="quick-add-input" id="planning-account-name" placeholder="e.g., Chase"></div>
+                    <div class="quick-add-field field-small"><label class="quick-add-label">Type</label><select class="quick-add-select" id="planning-account-type"><option value="checking">Checking</option><option value="savings">Savings</option><option value="credit">Credit</option><option value="ira">IRA</option><option value="other">Other</option></select></div>
+                    <div class="quick-add-field field-small"><label class="quick-add-label">Balance</label><input type="number" class="quick-add-input" id="planning-account-balance" placeholder="0.00" step="0.01"></div>
+                    <button class="quick-add-submit" id="planning-add-account-btn" title="Add Account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+                  </div>
+                  <div class="planning-card-body">
+                    <div id="planning-accounts-list">
+                      <p class="empty-message">Loading accounts...</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Income Sources Card -->
+                <div class="planning-card">
+                  <div class="planning-card-header header-green">
+                    <h3 class="planning-card-title">Income Sources</h3>
+                  </div>
+                  <div class="quick-add-bar">
+                    <div class="quick-add-field"><label class="quick-add-label">Source</label><input type="text" class="quick-add-input" id="planning-income-name" placeholder="e.g., Employer"></div>
+                    <div class="quick-add-field field-small"><label class="quick-add-label">Type</label><select class="quick-add-select" id="planning-income-type"><option value="w2">W2</option><option value="1099">1099</option><option value="investment">Investment</option><option value="rental">Rental</option><option value="other">Other</option></select></div>
+                    <div class="quick-add-field field-small"><label class="quick-add-label">Amount</label><input type="number" class="quick-add-input" id="planning-income-amount" placeholder="0.00" step="0.01"></div>
+                    <div class="quick-add-field field-small"><label class="quick-add-label">Account</label><select class="quick-add-select" id="planning-income-account"></select></div>
+                    <button class="quick-add-submit" id="planning-add-income-btn" title="Add Income"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+                  </div>
+                  <div class="planning-card-body">
+                    <div id="planning-income-list">
+                      <p class="empty-message">Loading income sources...</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Bucket Cards -->
+                <div class="planning-buckets-container" id="planning-buckets-container">
+                  <!-- Buckets rendered by JS -->
+                </div>
+
+                <!-- Goals Card -->
+                <div class="planning-card">
+                  <div class="planning-card-header header-pink">
+                    <h3 class="planning-card-title">Goals & Non-Standard Expenses</h3>
+                  </div>
+                  <div class="quick-add-bar">
+                    <div class="quick-add-field"><label class="quick-add-label">Goal Name</label><input type="text" class="quick-add-input" id="planning-goal-name" placeholder="e.g., Emergency Fund"></div>
+                    <div class="quick-add-field field-small"><label class="quick-add-label">Target</label><input type="number" class="quick-add-input" id="planning-goal-target" placeholder="0.00" step="0.01"></div>
+                    <div class="quick-add-field field-small"><label class="quick-add-label">Target Date</label><input type="date" class="quick-add-input" id="planning-goal-date"></div>
+                    <button class="quick-add-submit" id="planning-add-goal-btn" title="Add Goal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+                  </div>
+                  <div class="planning-card-body">
+                    <div class="planning-goals-list" id="planning-goals-list">
+                      <p class="empty-message">Loading goals...</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sidebar Column -->
+              <div class="planning-data-sidebar">
+                <!-- Categories Card -->
+                <div class="planning-card">
+                  <div class="planning-card-header header-purple">
+                    <h3 class="planning-card-title">Categories</h3>
+                  </div>
+                  <div class="quick-add-bar">
+                    <div class="quick-add-field"><label class="quick-add-label">Category Name</label><input type="text" class="quick-add-input" id="planning-category-name" placeholder="e.g., Groceries"></div>
+                    <div class="quick-add-field"><label class="quick-add-label">Bucket</label><select class="quick-add-select" id="planning-category-bucket"></select></div>
+                    <button class="quick-add-submit" id="planning-add-category-btn" title="Add Category"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+                  </div>
+                  <div class="planning-card-body">
+                    <div class="planning-categories-grid" id="planning-categories-grid">
+                      <p class="empty-message">Loading categories...</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Insights Box -->
+            <section class="planning-insights">
+              <div class="planning-insights-header">
+                <h3 class="planning-insights-title">Financial Insights</h3>
+                <div class="planning-insights-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 16v-4"></path>
+                    <path d="M12 8h.01"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="planning-insights-content" id="planning-insights-content">
+                <p>Loading insights...</p>
+              </div>
+            </section>
+          </div>
+        </div>
+        
+        <!-- Data Page (Phase 5) -->
+        <div class="page" id="page-data"><div class="page-placeholder"><svg class="page-placeholder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg><h2 class="page-placeholder-title">Data</h2><p class="page-placeholder-text">Coming in Phase 5</p></div></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODALS -->
+  <!-- ============================================================ -->
+
+  <!-- Edit Name Modal -->
+  <div class="modal-overlay" id="modal-edit-name">
+    <div class="modal modal-small">
+      <div class="modal-header"><h3 class="modal-title">Edit Name</h3><button class="modal-close" data-action="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+      <div class="modal-body"><div class="form-group"><label class="form-label">Your Name</label><input type="text" class="form-input" id="newUserName" placeholder="Enter your name"></div></div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Save</button></div>
+    </div>
+  </div>
+
+  <!-- Edit Account Modal (Budget) -->
+  <div class="modal-overlay" id="modal-edit-account">
+    <div class="modal modal-small">
+      <div class="modal-header"><h3 class="modal-title">Edit Account</h3><button class="modal-close" data-action="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-account-id">
+        <div class="form-group"><label class="form-label">Bank Name</label><input type="text" class="form-input" id="edit-account-name"></div>
+        <div class="form-group"><label class="form-label">Account Type</label><select class="form-select" id="edit-account-type"><option value="checking">Checking</option><option value="savings">Savings</option><option value="credit">Credit</option><option value="ira">IRA</option><option value="other">Other</option></select></div>
+        <div class="form-group"><label class="form-label">Starting Balance</label><div class="input-with-prefix"><span class="input-prefix">$</span><input type="number" class="form-input" id="edit-account-balance" step="0.01"></div></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Save</button></div>
+    </div>
+  </div>
+
+  <!-- Edit Income Modal (Budget) -->
+  <div class="modal-overlay" id="modal-edit-income">
+    <div class="modal modal-small">
+      <div class="modal-header"><h3 class="modal-title">Edit Income Source</h3><button class="modal-close" data-action="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-income-id">
+        <div class="form-group"><label class="form-label">Source Name</label><input type="text" class="form-input" id="edit-income-name"></div>
+        <div class="form-group"><label class="form-label">Income Type</label><select class="form-select" id="edit-income-type"><option value="w2">W2</option><option value="1099">1099</option><option value="investment">Investment</option><option value="rental">Rental</option><option value="other">Other</option></select></div>
+        <div class="form-group"><label class="form-label">Amount</label><div class="input-with-prefix"><span class="input-prefix">$</span><input type="number" class="form-input" id="edit-income-amount" step="0.01"></div></div>
+        <div class="form-group"><label class="form-label">Deposit Account</label><select class="form-select" id="edit-income-account"></select></div>
+        <div class="form-group"><label class="form-label">Pay Dates (comma-separated YYYY-MM-DD)</label><input type="text" class="form-input" id="edit-income-dates" placeholder="2024-01-15, 2024-01-31"></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Save</button></div>
+    </div>
+  </div>
+
+  <!-- Edit Category Modal (Budget) -->
+  <div class="modal-overlay" id="modal-edit-category">
+    <div class="modal modal-small">
+      <div class="modal-header"><h3 class="modal-title">Edit Category</h3><button class="modal-close" data-action="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-category-id">
+        <div class="form-group"><label class="form-label">Category Name</label><input type="text" class="form-input" id="edit-category-name"></div>
+        <div class="form-group"><label class="form-label">Bucket</label><select class="form-select" id="edit-category-bucket"></select></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Save</button></div>
+    </div>
+  </div>
+
+  <!-- Add Planned Expense Modal (Budget) -->
+  <div class="modal-overlay" id="modal-add-expense">
+    <div class="modal">
+      <div class="modal-header"><h3 class="modal-title">Add Planned Expense</h3><button class="modal-close" data-action="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="add-expense-bucket-id">
+        <div class="form-group"><label class="form-label">Description</label><input type="text" class="form-input" id="add-expense-description" placeholder="e.g., Monthly rent"></div>
+        <div class="form-group"><label class="form-label">Amount</label><div class="input-with-prefix"><span class="input-prefix">$</span><input type="number" class="form-input" id="add-expense-amount" step="0.01" placeholder="0.00"></div></div>
+        <div class="form-group"><label class="form-label">Category</label><select class="form-select" id="add-expense-category"></select></div>
+        <div class="form-group"><label class="form-label">Payment Account</label><select class="form-select" id="add-expense-account"></select></div>
+        <div class="form-group"><label class="form-label">Due Dates (comma-separated YYYY-MM-DD)</label><input type="text" class="form-input" id="add-expense-dates" placeholder="2024-01-01"></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Add Expense</button></div>
+    </div>
+  </div>
+
+  <!-- Edit Planned Expense Modal (Budget) -->
+  <div class="modal-overlay" id="modal-edit-expense">
+    <div class="modal">
+      <div class="modal-header"><h3 class="modal-title">Edit Planned Expense</h3><button class="modal-close" data-action="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-expense-id">
+        <div class="form-group"><label class="form-label">Description</label><input type="text" class="form-input" id="edit-expense-description"></div>
+        <div class="form-group"><label class="form-label">Amount</label><div class="input-with-prefix"><span class="input-prefix">$</span><input type="number" class="form-input" id="edit-expense-amount" step="0.01"></div></div>
+        <div class="form-group"><label class="form-label">Category</label><select class="form-select" id="edit-expense-category"></select></div>
+        <div class="form-group"><label class="form-label">Payment Account</label><select class="form-select" id="edit-expense-account"></select></div>
+        <div class="form-group"><label class="form-label">Due Dates (comma-separated YYYY-MM-DD)</label><input type="text" class="form-input" id="edit-expense-dates" placeholder="2024-01-01"></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Save</button></div>
+    </div>
+  </div>
+
+  <!-- Edit Goal Modal (Budget) -->
+  <div class="modal-overlay" id="modal-edit-goal">
+    <div class="modal modal-small">
+      <div class="modal-header"><h3 class="modal-title">Edit Goal</h3><button class="modal-close" data-action="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-goal-id">
+        <div class="form-group"><label class="form-label">Goal Name</label><input type="text" class="form-input" id="edit-goal-name"></div>
+        <div class="form-group"><label class="form-label">Target Amount</label><div class="input-with-prefix"><span class="input-prefix">$</span><input type="number" class="form-input" id="edit-goal-target" step="0.01"></div></div>
+        <div class="form-group"><label class="form-label">Target Date</label><input type="date" class="form-input" id="edit-goal-date"></div>
+        <div class="form-group"><label class="form-label">Funded Amount</label><div class="input-with-prefix"><span class="input-prefix">$</span><input type="number" class="form-input" id="edit-goal-funded" step="0.01"></div></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Save</button></div>
+    </div>
+  </div>
+
+  <!-- Edit/Add Transaction Modal (Ledger) -->
+  <div class="modal-overlay" id="modal-edit-transaction">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Transaction</h3>
+        <button class="modal-close" data-action="close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="id">
+        
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-select" name="type">
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-input" name="date">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input type="text" class="form-input" name="description" placeholder="Enter description...">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Amount</label>
+          <div class="input-with-prefix">
+            <span class="input-prefix">$</span>
+            <input type="number" class="form-input" name="amount" step="0.01" min="0.01" placeholder="0.00">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Account</label>
+          <select class="form-select" name="account_id">
+            <option value="">Select account...</option>
+          </select>
+        </div>
+        
+        <div class="expense-fields">
+          <div class="form-group">
+            <label class="form-label">Bucket</label>
+            <select class="form-select" name="bucket_id">
+              <option value="">Select bucket...</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="form-select" name="category_id">
+              <option value="">Select category...</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-action="cancel">Cancel</button>
+        <button class="btn btn-primary" data-action="save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal (Shared) -->
+  <div class="modal-overlay" id="modal-confirm-delete">
+    <div class="modal modal-small">
+      <div class="modal-body">
+        <p class="confirm-message" id="confirm-delete-message">Are you sure you want to delete this item?</p>
+        <p class="confirm-warning">This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">No, Cancel</button><button class="btn btn-danger" data-action="confirm" id="confirm-delete-btn">Yes, Delete</button></div>
+    </div>
+  </div>
+
+  <!-- Undo Toast (Ledger) -->
+  <div class="undo-toast" id="undo-toast">
+    <span class="undo-toast-message">Action undone</span>
+    <button class="undo-toast-dismiss">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- PLANNING PAGE MODALS -->
+  <!-- ============================================================ -->
+
+  <!-- Edit Account Modal (Planning) -->
+  <div class="modal-overlay" id="planning-modal-edit-account">
+    <div class="modal modal-small">
+      <div class="modal-header"><h3 class="modal-title">Edit Account</h3><button class="modal-close" data-action="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="planning-edit-account-id">
+        <div class="form-group"><label class="form-label">Bank Name</label><input type="text" class="form-input" id="planning-edit-account-name"></div>
+        <div class="form-group"><label class="form-label">Account Type</label><select class="form-select" id="planning-edit-account-type"><option value="checking">Checking</option><option value="savings">Savings</option><option value="credit">Credit</option><option value="ira">IRA</option><option value="other">Other</option></select></div>
+        <div class="form-group"><label class="form-label">Starting Balance</label><div class="input-with-prefix"><span class="input-prefix">$</span><input type="number" class="form-input" id="planning-edit-account-balance" step="0.01"></div></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Save</button></div>
+    </div>
+  </div>
+
+  <!-- Edit Income Modal (Planning) -->
+  <div class="modal-overlay" id="planning-modal-edit-income">
+    <div class="modal modal-small">
+      <div class="modal-header"><h3 class="modal-title">Edit Income Source</h3><button class="modal-close" data-action="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="planning-edit-income-id">
+        <div class="form-group"><label class="form-label">Source Name</label><input type="text" class="form-input" id="planning-edit-income-name"></div>
+        <div class="form-group"><label class="form-label">Income Type</label><select class="form-select" id="planning-edit-income-type"><option value="w2">W2</option><option value="1099">1099</option><option value="investment">Investment</option><option value="rental">Rental</option><option value="other">Other</option></select></div>
+        <div class="form-group"><label class="form-label">Amount</label><div class="input-with-prefix"><span class="input-prefix">$</span><input type="number" class="form-input" id="planning-edit-income-amount" step="0.01"></div></div>
+        <div class="form-group"><label class="form-label">Deposit Account</label><select class="form-select" id="planning-edit-income-account"></select></div>
+        <div class="form-group"><label class="form-label">Pay Dates (comma-separated YYYY-MM-DD)</label><input type="text" class="form-input" id="planning-edit-income-dates" placeholder="2024-01-15, 2024-01-31"></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Save</button></div>
+    </div>
+  </div>
+
+  <!-- Edit Category Modal (Planning) -->
+  <div class="modal-overlay" id="planning-modal-edit-category">
+    <div class="modal modal-small">
+      <div class="modal-header"><h3 class="modal-title">Edit Category</h3><button class="modal-close" data-action="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="planning-edit-category-id">
+        <div class="form-group"><label class="form-label">Category Name</label><input type="text" class="form-input" id="planning-edit-category-name"></div>
+        <div class="form-group"><label class="form-label">Bucket</label><select class="form-select" id="planning-edit-category-bucket"></select></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Save</button></div>
+    </div>
+  </div>
+
+  <!-- Add Planned Expense Modal (Planning) -->
+  <div class="modal-overlay" id="planning-modal-add-expense">
+    <div class="modal">
+      <div class="modal-header"><h3 class="modal-title">Add Planned Expense</h3><button class="modal-close" data-action="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="planning-add-expense-bucket-id">
+        <div class="form-group"><label class="form-label">Description</label><input type="text" class="form-input" id="planning-add-expense-description" placeholder="e.g., Monthly rent"></div>
+        <div class="form-group"><label class="form-label">Amount</label><div class="input-with-prefix"><span class="input-prefix">$</span><input type="number" class="form-input" id="planning-add-expense-amount" step="0.01" placeholder="0.00"></div></div>
+        <div class="form-group"><label class="form-label">Category</label><select class="form-select" id="planning-add-expense-category"></select></div>
+        <div class="form-group"><label class="form-label">Payment Account</label><select class="form-select" id="planning-add-expense-account"></select></div>
+        <div class="form-group"><label class="form-label">Due Dates (comma-separated YYYY-MM-DD)</label><input type="text" class="form-input" id="planning-add-expense-dates" placeholder="2024-01-01"></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Add Expense</button></div>
+    </div>
+  </div>
+
+  <!-- Edit Planned Expense Modal (Planning) -->
+  <div class="modal-overlay" id="planning-modal-edit-expense">
+    <div class="modal">
+      <div class="modal-header"><h3 class="modal-title">Edit Planned Expense</h3><button class="modal-close" data-action="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="planning-edit-expense-id">
+        <div class="form-group"><label class="form-label">Description</label><input type="text" class="form-input" id="planning-edit-expense-description"></div>
+        <div class="form-group"><label class="form-label">Amount</label><div class="input-with-prefix"><span class="input-prefix">$</span><input type="number" class="form-input" id="planning-edit-expense-amount" step="0.01"></div></div>
+        <div class="form-group"><label class="form-label">Category</label><select class="form-select" id="planning-edit-expense-category"></select></div>
+        <div class="form-group"><label class="form-label">Payment Account</label><select class="form-select" id="planning-edit-expense-account"></select></div>
+        <div class="form-group"><label class="form-label">Due Dates (comma-separated YYYY-MM-DD)</label><input type="text" class="form-input" id="planning-edit-expense-dates" placeholder="2024-01-01"></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Save</button></div>
+    </div>
+  </div>
+
+  <!-- Edit Goal Modal (Planning) -->
+  <div class="modal-overlay" id="planning-modal-edit-goal">
+    <div class="modal modal-small">
+      <div class="modal-header"><h3 class="modal-title">Edit Goal</h3><button class="modal-close" data-action="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="planning-edit-goal-id">
+        <div class="form-group"><label class="form-label">Goal Name</label><input type="text" class="form-input" id="planning-edit-goal-name"></div>
+        <div class="form-group"><label class="form-label">Target Amount</label><div class="input-with-prefix"><span class="input-prefix">$</span><input type="number" class="form-input" id="planning-edit-goal-target" step="0.01"></div></div>
+        <div class="form-group"><label class="form-label">Target Date</label><input type="date" class="form-input" id="planning-edit-goal-date"></div>
+        <div class="form-group"><label class="form-label">Funded Amount</label><div class="input-with-prefix"><span class="input-prefix">$</span><input type="number" class="form-input" id="planning-edit-goal-funded" step="0.01"></div></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Save</button></div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal (Planning) -->
+  <div class="modal-overlay" id="planning-modal-confirm-delete">
+    <div class="modal modal-small">
+      <div class="modal-body">
+        <p class="confirm-message" id="planning-confirm-delete-message">Are you sure you want to delete this item?</p>
+        <p class="confirm-warning">This will only remove it from the planning session, not from your actual budget.</p>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">No, Cancel</button><button class="btn btn-danger" data-action="confirm">Yes, Delete</button></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

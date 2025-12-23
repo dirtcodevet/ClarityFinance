@@ -1,0 +1,60 @@
+{
+  "name": "clarity-finance",
+  "version": "0.1.0",
+  "description": "Personal finance and budgeting application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "lint": "eslint .",
+    "build": "electron-builder --win",
+    "build:dir": "electron-builder --win --dir"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "private": true,
+  "build": {
+    "appId": "com.clarityfinance.app",
+    "productName": "Clarity Finance",
+    "copyright": "Copyright © 2025",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+	"nsis": {
+	  "oneClick": false,
+	  "perMachine": true, 
+	  "allowToChangeInstallationDirectory": true,
+	  "createDesktopShortcut": "always",
+	  "createStartMenuShortcut": true,
+	  "shortcutName": "Clarity Finance",
+	  "uninstallDisplayName": "Clarity Finance",
+	  "runAfterFinish": true
+},
+    "files": [
+      "**/*",
+      "!**/*.md",
+      "!docs/**/*",
+      "!tests/**/*",
+      "!.eslintrc.js",
+      "!jest.config.js"
+    ]
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.7.2",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
+    "electron-rebuild": "^3.2.9",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.5.0",
+    "flatpickr": "^4.6.13",
+    "zod": "^3.22.4"
+  }
+}

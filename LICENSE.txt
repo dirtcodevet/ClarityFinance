@@ -1,0 +1,37 @@
+CLARITY FINANCE - END USER LICENSE AGREEMENT
+
+Copyright (c) 2024. All rights reserved.
+
+This software is provided as-is for personal use.
+
+By installing and using this software, you agree to the following terms:
+
+1. LICENSE GRANT
+   This software is licensed, not sold. You are granted a non-exclusive,
+   non-transferable license to use this software for personal financial management.
+
+2. RESTRICTIONS
+   You may not:
+   - Modify, reverse engineer, or decompile the software
+   - Distribute copies to third parties
+   - Use the software for commercial purposes
+
+3. DATA PRIVACY
+   All financial data is stored locally on your computer. No data is transmitted
+   to external servers or third parties.
+
+4. WARRANTY DISCLAIMER
+   THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS
+   FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+5. LIMITATION OF LIABILITY
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+   DAMAGES, OR OTHER LIABILITY ARISING FROM THE USE OF THIS SOFTWARE.
+
+6. TERMINATION
+   This license is effective until terminated. It will terminate automatically
+   if you fail to comply with any of these terms.
+
+By clicking "I Agree" during installation, you acknowledge that you have read
+and understood this agreement and agree to be bound by its terms.
