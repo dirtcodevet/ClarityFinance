@@ -206,6 +206,10 @@ ipcMain.handle("budget:getAccounts", async () => {
   return budget.getAccounts();
 });
 
+ipcMain.handle("budget:getBudgetDataForMonth", async (event, month) => {
+  return budget.getBudgetDataForMonth(month);
+});
+
 ipcMain.handle("budget:createAccount", async (event, data) => {
   return budget.createAccount(data);
 });

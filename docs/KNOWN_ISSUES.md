@@ -147,52 +147,7 @@ Dashboard may only show $10 instead of the sum of all occurrences within the sel
 **Module:** All pages
 **Files:** `ui/app.js`, all page modules, budget service
 
-**Description:**
-The month selector arrows (previous/next month) don't change which data is displayed. All data remains visible regardless of selected month. Additionally, the app needs intelligent month-to-month data persistence.
-
-**Expected Behavior:**
-
-**Navigation:**
-- Selecting "November 2024" should show November data (not December)
-- Selecting "December 2024" should show December data
-- Month selector must actually filter what's displayed
-
-**Data Carry-Forward Logic:**
-- If user is in December and navigates to January:
-  - If January has NO data → pre-populate with December's data (accounts, income, categories, expenses, goals)
-  - If January HAS data → show January's actual data (user has already set up that month)
-- If user navigates to November (past month):
-  - Show November's actual data (what was entered for November)
-  - Do NOT show December's data when viewing November
-
-**Current State:**
-- Month selector doesn't filter anything - all months' data shows simultaneously
-- No data carry-forward mechanism exists
-- Each month exists independently (even future months show empty)
-
-**Suggested Fix:**
-1. Ensure month selector properly updates `state.currentMonth` and triggers reload
-2. Add month filtering to all data queries
-3. Implement data carry-forward logic in Budget service:
-   ```javascript
-   async function getDataForMonth(monthString) {
-     // Check if month has data
-     const monthData = await db.query('expenses', { month: monthString });
-
-     if (monthData.length === 0 && isFutureMonth(monthString)) {
-       // Future month with no data - copy from previous month
-       const previousMonth = getPreviousMonth(monthString);
-       return await copyMonthData(previousMonth, monthString);
-     }
-
-     // Return actual data for this month
-     return monthData;
-   }
-   ```
-4. Add month field to all relevant tables (or use date ranges)
-5. Update all pages to respect current month filter
-
-**Note:** This is critical - app is non-functional for time-based budgeting without working month filtering AND data carry-forward.
+**Status:** ✅ Resolved
 
 ---
 
@@ -264,7 +219,10 @@ Pay Dates: [Click to select dates]
 
 ## Resolved Issues
 
-(None yet - issues move here when fixed)
+### Issue #6: Month Selector Doesn't Filter Data + Data Should Carry Forward
+**Resolution:**
+- Month selector now reloads Budget data per selected month.
+- Budget data carries forward only to future months with no data, never backward.
 
 ---
 

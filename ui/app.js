@@ -96,7 +96,9 @@ async function navigateTo(pageName) {
     const monthString = state.currentMonth.toISOString().slice(0, 7);
     dashboardPage.loadDashboardData(monthString);
   } else if (pageName === 'budget') {
-    budgetPage.loadBudgetData();
+    const monthString = state.currentMonth.toISOString().slice(0, 7);
+    budgetPage.setCurrentMonth(monthString);
+    budgetPage.loadBudgetData(monthString);
   } else if (pageName === 'ledger') {
     if (!state.pageInitialized.ledger) {
       await ledgerPage.initializeLedgerPage();
@@ -141,6 +143,7 @@ async function updateMonthDisplay() {
   });
 
   // Reload current page data
+  budgetPage.setCurrentMonth(monthString);
   reloadCurrentPage();
 }
 
@@ -164,7 +167,7 @@ function reloadCurrentPage() {
   if (page === 'ledger' && state.pageInitialized.ledger) {
     ledgerPage.reloadForMonth(state.currentMonth);
   } else if (page === 'budget') {
-    budgetPage.loadBudgetData();
+    budgetPage.loadBudgetData(monthString);
   } else if (page === 'dashboard' && state.pageInitialized.dashboard) {
     dashboardPage.loadDashboardData(monthString);
   }
@@ -374,6 +377,7 @@ async function loadInitialData() {
   // Always start at current month (don't load from config)
   const now = new Date();
   state.currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  budgetPage.setCurrentMonth(state.currentMonth.toISOString().slice(0, 7));
   updateMonthDisplay();
 }
 
@@ -395,6 +399,7 @@ async function init() {
   dashboardPage.initializeDashboardPage();
   state.pageInitialized.dashboard = true;
   const monthString = state.currentMonth.toISOString().slice(0, 7);
+  budgetPage.setCurrentMonth(monthString);
   dashboardPage.loadDashboardData(monthString);
 
   console.log('[App] UI initialized.');
