@@ -293,12 +293,14 @@ async function addAccount() {
   const balance = parseFloat(document.getElementById('account-balance').value) || 0;
   if (!name) { showError('Please enter a bank name'); return; }
   const payload = {
+  const result = await budgetApi.createAccount({
     bank_name: name,
     account_type: type,
     starting_balance: balance,
     effective_from: getMonthStartDate()
   };
   const result = await budgetApi.createAccount(payload);
+  });
   if (!result.ok) { showError(result.error.message); return; }
   recordUndoAction({ type: 'create', entity: 'account', id: result.data.id, payload });
   document.getElementById('account-name').value = ''; document.getElementById('account-balance').value = '';
@@ -321,6 +323,9 @@ async function saveAccount() {
       recordUndoAction({ type: 'create', entity: 'account', id: result.data.id, payload });
     }
   } else if (previous) {
+  const result = await budgetApi.updateAccount(id, { bank_name: name, account_type: type, starting_balance: balance });
+  if (!result.ok) { showError(result.error.message); return; }
+  if (previous) {
     recordUndoAction({
       type: 'update',
       entity: 'account',
@@ -351,6 +356,7 @@ async function addIncomeSource() {
   if (!accountId) { showError('Please select an account'); return; }
   if (amount <= 0) { showError('Please enter a valid amount'); return; }
   const payload = {
+  const result = await budgetApi.createIncomeSource({
     source_name: name,
     income_type: type,
     amount,
@@ -359,6 +365,7 @@ async function addIncomeSource() {
     effective_from: getMonthStartDate()
   };
   const result = await budgetApi.createIncomeSource(payload);
+  });
   if (!result.ok) { showError(result.error.message); return; }
   recordUndoAction({ type: 'create', entity: 'income', id: result.data.id, payload });
   document.getElementById('income-name').value = ''; document.getElementById('income-amount').value = '';
@@ -383,12 +390,17 @@ async function saveIncomeSource() {
       recordUndoAction({ type: 'create', entity: 'income', id: result.data.id, payload });
     }
   } else if (previous) {
+  const changes = { source_name: name, income_type: type, amount, account_id: accountId, pay_dates: datesToJson(datesStr) };
+  const result = await budgetApi.updateIncomeSource(id, changes);
+  if (!result.ok) { showError(result.error.message); return; }
+  if (previous) {
     recordUndoAction({
       type: 'update',
       entity: 'income',
       id,
       previous: JSON.parse(JSON.stringify(previous)),
       next: { source_name: name, income_type: type, amount, account_id: accountId, pay_dates: datesToJson(datesStr) }
+      next: changes
     });
   }
   closeModal('modal-edit-income'); await loadBudgetData();
@@ -432,12 +444,17 @@ async function saveCategory() {
       recordUndoAction({ type: 'create', entity: 'category', id: result.data.id, payload });
     }
   } else if (previous) {
+  const changes = { name, bucket_id: bucketId };
+  const result = await budgetApi.updateCategory(id, changes);
+  if (!result.ok) { showError(result.error.message); return; }
+  if (previous) {
     recordUndoAction({
       type: 'update',
       entity: 'category',
       id,
       previous: JSON.parse(JSON.stringify(previous)),
       next: { name, bucket_id: bucketId }
+      next: changes
     });
   }
   closeModal('modal-edit-category'); await loadBudgetData();
@@ -513,6 +530,13 @@ async function savePlannedExpense() {
       next: { description, amount, bucket_id: expense.bucket_id, category_id: categoryId, account_id: accountId, due_dates: datesToJson(datesStr), is_recurring: isRecurring, ...(endDate ? { recurrence_end_date: endDate } : {}) }
     });
   }
+  recordUndoAction({
+    type: 'update',
+    entity: 'expense',
+    id,
+    previous: JSON.parse(JSON.stringify(expense)),
+    next: data
+  });
   closeModal('modal-edit-expense'); await loadBudgetData();
 }
 
@@ -534,6 +558,7 @@ async function addGoal() {
   if (target <= 0) { showError('Please enter a valid target'); return; }
   if (!date) { showError('Please select a date'); return; }
   const payload = {
+  const result = await budgetApi.createGoal({
     name,
     target_amount: target,
     target_date: date,
@@ -541,6 +566,7 @@ async function addGoal() {
     effective_from: getMonthStartDate()
   };
   const result = await budgetApi.createGoal(payload);
+  });
   if (!result.ok) { showError(result.error.message); return; }
   recordUndoAction({ type: 'create', entity: 'goal', id: result.data.id, payload });
   document.getElementById('goal-name').value = ''; document.getElementById('goal-target').value = ''; document.getElementById('goal-date').value = '';
@@ -564,12 +590,17 @@ async function saveGoal() {
       recordUndoAction({ type: 'create', entity: 'goal', id: result.data.id, payload });
     }
   } else if (previous) {
+  const changes = { name, target_amount: target, target_date: date, funded_amount: funded };
+  const result = await budgetApi.updateGoal(id, changes);
+  if (!result.ok) { showError(result.error.message); return; }
+  if (previous) {
     recordUndoAction({
       type: 'update',
       entity: 'goal',
       id,
       previous: JSON.parse(JSON.stringify(previous)),
       next: { name, target_amount: target, target_date: date, funded_amount: funded }
+      next: changes
     });
   }
   closeModal('modal-edit-goal'); await loadBudgetData();

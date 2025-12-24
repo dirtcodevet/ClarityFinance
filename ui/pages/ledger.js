@@ -1339,6 +1339,12 @@ async function refreshDateRangeToCurrentMonth() {
   const now = new Date();
   const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
   const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const monthResult = await ipcRenderer.invoke('config:get', 'currentMonth');
+  const monthString = monthResult.ok && monthResult.data ? monthResult.data : null;
+  const monthDate = monthString ? new Date(`${monthString}-01`) : new Date();
+
+  const startDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+  const endDate = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
 
   ledgerState.startDate = formatDateForInput(startDate);
   ledgerState.endDate = formatDateForInput(endDate);

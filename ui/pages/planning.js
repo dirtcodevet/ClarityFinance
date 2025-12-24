@@ -1031,6 +1031,9 @@ function setupDatePickers() {
     });
   }
 
+  const addExpenseDatesInput = document.getElementById('planning-add-expense-dates');
+  const editExpenseDatesInput = document.getElementById('planning-edit-expense-dates');
+
   if (addExpenseDatesInput) {
     flatpickr(addExpenseDatesInput, {
       mode: 'multiple',

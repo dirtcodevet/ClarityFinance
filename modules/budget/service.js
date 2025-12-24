@@ -656,6 +656,7 @@ async function getMonthData(table, monthString, orderBy) {
 
 async function monthHasData(monthString) {
   const tables = ['accounts', 'income_sources', 'categories', 'planned_expenses', 'goals'];
+  const tables = ['accounts', 'income_sources', 'planned_expenses', 'goals'];
 
   for (const table of tables) {
     const result = await getMonthData(table, monthString, 'effective_from');
@@ -673,6 +674,7 @@ async function monthHasData(monthString) {
 async function getLatestEditedMonthBefore(monthString) {
   const { startDate } = getMonthRange(monthString);
   const tables = ['accounts', 'income_sources', 'categories', 'planned_expenses', 'goals'];
+  const tables = ['accounts', 'income_sources', 'planned_expenses', 'goals'];
   let latest = null;
 
   for (const table of tables) {
@@ -711,11 +713,15 @@ async function copyMonthData(fromMonth, toMonth) {
     getMonthData('accounts', fromMonth, 'bank_name'),
     getMonthData('income_sources', fromMonth, 'source_name'),
     getMonthData('categories', fromMonth, 'name'),
+  const [accountsResult, incomeResult, expensesResult, goalsResult] = await Promise.all([
+    getMonthData('accounts', fromMonth, 'bank_name'),
+    getMonthData('income_sources', fromMonth, 'source_name'),
     getMonthData('planned_expenses', fromMonth, 'description'),
     getMonthData('goals', fromMonth, 'target_date')
   ]);
 
   const results = [accountsResult, incomeResult, categoriesResult, expensesResult, goalsResult];
+  const results = [accountsResult, incomeResult, expensesResult, goalsResult];
   const failed = results.find(result => !result.ok);
   if (failed) {
     return failed;
@@ -774,6 +780,7 @@ async function copyMonthData(fromMonth, toMonth) {
       amount: expense.amount,
       bucket_id: expense.bucket_id,
       category_id: categoryIdMap.get(expense.category_id) || expense.category_id,
+      category_id: expense.category_id,
       account_id: accountIdMap.get(expense.account_id) || expense.account_id,
       due_dates: expense.due_dates,
       is_recurring: expense.is_recurring,
@@ -850,6 +857,7 @@ async function getBudgetDataForMonth(monthString) {
     getMonthData('income_sources', monthString, 'source_name'),
     getBuckets(),
     getMonthData('categories', monthString, 'name'),
+    getCategories(),
     getMonthData('planned_expenses', monthString, 'description'),
     getMonthData('goals', monthString, 'target_date')
   ]);
