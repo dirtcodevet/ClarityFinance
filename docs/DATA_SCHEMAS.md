@@ -28,6 +28,7 @@ Stores bank accounts, credit cards, IRAs, etc.
 | `bank_name` | string | yes | min 1 char | Name of bank/institution |
 | `account_type` | string | yes | enum | Type of account |
 | `starting_balance` | number | yes | — | Initial balance when account was added |
+| `effective_from` | string | no | YYYY-MM-DD | First month this account applies to |
 
 **account_type enum values:**
 - `checking`
@@ -61,6 +62,7 @@ Stores planned/expected income.
 | `amount` | number | yes | positive | Expected amount per occurrence |
 | `account_id` | integer | yes | valid account | Account where income is deposited |
 | `pay_dates` | string | yes | JSON array | Array of dates (YYYY-MM-DD) |
+| `effective_from` | string | no | YYYY-MM-DD | First month this income source applies to |
 
 **income_type enum values:**
 - `w2`
@@ -139,6 +141,7 @@ Stores budgeted/planned expenses within buckets.
 | `category_id` | integer | yes | valid category | Which category |
 | `account_id` | integer | yes | valid account | Payment method |
 | `due_dates` | string | yes | JSON array | Array of due dates (YYYY-MM-DD) |
+| `effective_from` | string | no | YYYY-MM-DD | First month this expense applies to |
 
 **Example:**
 ```javascript
@@ -164,6 +167,7 @@ Stores non-standard expenses and savings goals.
 | `target_amount` | number | yes | positive | Amount needed to fully fund |
 | `target_date` | string | yes | YYYY-MM-DD | Date goal should be funded by |
 | `funded_amount` | number | no | >= 0 | Amount funded so far (default 0) |
+| `effective_from` | string | no | YYYY-MM-DD | First month this goal applies to |
 
 **Example:**
 ```javascript

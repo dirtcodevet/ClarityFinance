@@ -52,5 +52,6 @@ module.exports = {
   
   // Utilities
   getBucketTotal: service.getBucketTotal,
-  getBudgetSummary: service.getBudgetSummary
+  getBudgetSummary: service.getBudgetSummary,
+  getBudgetDataForMonth: service.getBudgetDataForMonth
 };
