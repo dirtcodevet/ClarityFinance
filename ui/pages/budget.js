@@ -20,9 +20,6 @@ const state = {
   plannedExpenses: [],
   goals: [],
   pendingDelete: null,
-  undoStack: [],
-  redoStack: [],
-  isReplaying: false,
   currentMonth: null
 };
 
@@ -286,13 +283,12 @@ async function addAccount() {
   const type = document.getElementById('account-type').value;
   const balance = parseFloat(document.getElementById('account-balance').value) || 0;
   if (!name) { showError('Please enter a bank name'); return; }
-  const payload = {
+  const result = await budgetApi.createAccount({
     bank_name: name,
     account_type: type,
     starting_balance: balance,
     effective_from: getMonthStartDate()
-  };
-  const result = await budgetApi.createAccount(payload);
+  });
   if (!result.ok) { showError(result.error.message); return; }
   recordUndoAction({ type: 'create', entity: 'account', id: result.data.id, payload });
   document.getElementById('account-name').value = ''; document.getElementById('account-balance').value = '';
@@ -338,15 +334,14 @@ async function addIncomeSource() {
   if (!name) { showError('Please enter a source name'); return; }
   if (!accountId) { showError('Please select an account'); return; }
   if (amount <= 0) { showError('Please enter a valid amount'); return; }
-  const payload = {
+  const result = await budgetApi.createIncomeSource({
     source_name: name,
     income_type: type,
     amount,
     account_id: accountId,
     pay_dates: '[]',
     effective_from: getMonthStartDate()
-  };
-  const result = await budgetApi.createIncomeSource(payload);
+  });
   if (!result.ok) { showError(result.error.message); return; }
   recordUndoAction({ type: 'create', entity: 'income', id: result.data.id, payload });
   document.getElementById('income-name').value = ''; document.getElementById('income-amount').value = '';
@@ -504,14 +499,13 @@ async function addGoal() {
   if (!name) { showError('Please enter a goal name'); return; }
   if (target <= 0) { showError('Please enter a valid target'); return; }
   if (!date) { showError('Please select a date'); return; }
-  const payload = {
+  const result = await budgetApi.createGoal({
     name,
     target_amount: target,
     target_date: date,
     funded_amount: 0,
     effective_from: getMonthStartDate()
-  };
-  const result = await budgetApi.createGoal(payload);
+  });
   if (!result.ok) { showError(result.error.message); return; }
   recordUndoAction({ type: 'create', entity: 'goal', id: result.data.id, payload });
   document.getElementById('goal-name').value = ''; document.getElementById('goal-target').value = ''; document.getElementById('goal-date').value = '';

@@ -123,7 +123,10 @@ if (result.ok) {
 
 ## Month-Based Budget Data
 
+// codex/review-project-documents-and-codebase-44xjc9
 Budget items with `effective_from` (including categories) are scoped to a specific month. When the UI requests `budget:getBudgetDataForMonth`, the service ensures:
+Budget items with `effective_from` are scoped to a specific month. When the UI requests `budget:getBudgetDataForMonth`, the service ensures:
+Test_Codex
 - If the requested month has no budget data yet, it copies the most recently edited prior month forward.
 - Past months never inherit data from future months.
 

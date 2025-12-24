@@ -544,7 +544,7 @@ async function getMonthData(table, monthString, orderBy) {
 }
 
 async function monthHasData(monthString) {
-  const tables = ['accounts', 'income_sources', 'categories', 'planned_expenses', 'goals'];
+  const tables = ['accounts', 'income_sources', 'planned_expenses', 'goals'];
 
   for (const table of tables) {
     const result = await getMonthData(table, monthString, 'effective_from');
@@ -596,22 +596,20 @@ async function copyMonthData(fromMonth, toMonth) {
     return { ok: true, data: false };
   }
 
-  const [accountsResult, incomeResult, categoriesResult, expensesResult, goalsResult] = await Promise.all([
+  const [accountsResult, incomeResult, expensesResult, goalsResult] = await Promise.all([
     getMonthData('accounts', fromMonth, 'bank_name'),
     getMonthData('income_sources', fromMonth, 'source_name'),
-    getMonthData('categories', fromMonth, 'name'),
     getMonthData('planned_expenses', fromMonth, 'description'),
     getMonthData('goals', fromMonth, 'target_date')
   ]);
 
-  const results = [accountsResult, incomeResult, categoriesResult, expensesResult, goalsResult];
+  const results = [accountsResult, incomeResult, expensesResult, goalsResult];
   const failed = results.find(result => !result.ok);
   if (failed) {
     return failed;
   }
 
   const accountIdMap = new Map();
-  const categoryIdMap = new Map();
   const toStartDate = `${toMonth}-01`;
 
   for (const account of accountsResult.data) {
@@ -644,25 +642,12 @@ async function copyMonthData(fromMonth, toMonth) {
     }
   }
 
-  for (const category of categoriesResult.data) {
-    const newRecord = {
-      name: category.name,
-      bucket_id: category.bucket_id,
-      effective_from: toStartDate
-    };
-    const insertResult = await db.insert('categories', newRecord);
-    if (!insertResult.ok) {
-      return insertResult;
-    }
-    categoryIdMap.set(category.id, insertResult.data.id);
-  }
-
   for (const expense of expensesResult.data) {
     const newRecord = {
       description: expense.description,
       amount: expense.amount,
       bucket_id: expense.bucket_id,
-      category_id: categoryIdMap.get(expense.category_id) || expense.category_id,
+      category_id: expense.category_id,
       account_id: accountIdMap.get(expense.account_id) || expense.account_id,
       due_dates: expense.due_dates,
       is_recurring: expense.is_recurring,
@@ -738,7 +723,7 @@ async function getBudgetDataForMonth(monthString) {
     getMonthData('accounts', monthString, 'bank_name'),
     getMonthData('income_sources', monthString, 'source_name'),
     getBuckets(),
-    getMonthData('categories', monthString, 'name'),
+    getCategories(),
     getMonthData('planned_expenses', monthString, 'description'),
     getMonthData('goals', monthString, 'target_date')
   ]);
