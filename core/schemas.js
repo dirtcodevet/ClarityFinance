@@ -102,7 +102,8 @@ const BucketUpdateSchema = z.object({
 
 const CategorySchema = z.object({
   name: nonEmptyString,
-  bucket_id: z.number().int().positive('Bucket ID must be a positive integer')
+  bucket_id: z.number().int().positive('Bucket ID must be a positive integer'),
+  effective_from: dateString.optional() // When this category becomes active
 });
 
 const CategoryUpdateSchema = CategorySchema.partial();

@@ -1,8 +1,8 @@
 # Clarity Finance - Project Status
 
-> **Last Updated:** Phase X Preparation (2024-12-22)
-> **Current Phase:** Phase 5 COMPLETE → Phase X Ready to Begin
-> **Next Session:** Begin Phase X Part 0 (Critical Bug Fixes)
+> **Last Updated:** Phase X Active (2025-12-24)
+> **Current Phase:** Phase X In Progress
+> **Next Session:** Verify budget month-edit fixes, planning income date picker, and ledger month refresh behavior
 
 ---
 
@@ -34,7 +34,7 @@ For complete SSOT hierarchy and conflict resolution rules, see: **[DOCUMENTATION
 | Phase 3: Dashboard Module | ✅ Complete | Charts, summaries, visualizations |
 | Phase 4: Planning Module | ✅ Complete* | What-if sandbox, insights (*UX/keyboard deferred to Phase X) |
 | Phase 5: Data Module | ✅ Complete | Backup/restore via IPC, tips & tricks, keyboard shortcuts reference |
-| Phase X: Polish & Deploy | 📋 **NEXT** | **CRITICAL: 7 blocking bugs must be fixed first, then UX/keyboard/installer** |
+| Phase X: Polish & Deploy | 🟡 **In Progress** | **Critical bug fixes underway; verify budget month edits and planning/ledger UX polish** |
 
 ---
 
@@ -657,6 +657,14 @@ Phase X Structure:
 **Success Criteria:** Users can freely select ANY combination of pay dates from calendar picker (no pattern restrictions)
 
 ---
+
+### ✅ Recent Implementation Notes (Phase X In Progress)
+
+- Month-scoped budget data now includes categories and forward carry logic.
+- Planning sandbox loads month-scoped budget data and includes recurring expenses + multi-date pickers.
+- Keyboard shortcuts (Enter submit, Ctrl+Z/Y, Ctrl+S, Ctrl+R, Escape) implemented for Budget/Planning.
+- Dashboard + Planning charts now show hover tooltips with date + balance values.
+- Ledger date-range keeps user selection; added “align to selected month” refresh button.
 
 ### ✅ Part 0 Testing Checklist (MUST PASS BEFORE PART 1)
 

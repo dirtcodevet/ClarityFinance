@@ -44,6 +44,9 @@ async function createAccount(data) {
   if (!data.starting_balance_date) {
     data.starting_balance_date = new Date().toISOString().split('T')[0];
   }
+  if (!data.effective_from) {
+    data.effective_from = new Date().toISOString().split('T')[0];
+  }
 
   const result = await db.insert('accounts', data);
 
@@ -61,12 +64,28 @@ async function createAccount(data) {
  * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
  */
 async function updateAccount(id, changes) {
-  const result = await db.update('accounts', id, changes);
-  
-  if (result.ok) {
-    events.emit('account:updated', { account: result.data, changes });
+  const existing = db.getById('accounts', id);
+  if (!existing.ok) {
+    return existing;
   }
-  
+
+  const recordMonth = getRecordMonth(existing.data);
+  if (recordMonth && changes.monthString && recordMonth < changes.monthString) {
+    const insertResult = await forkRecordForMonth('accounts', existing.data, changes, changes.monthString);
+    if (insertResult.ok) {
+      events.emit('account:created', { account: insertResult.data, forkedFrom: id });
+      return { ok: true, data: insertResult.data, meta: { forked: true, originalId: id } };
+    }
+    return insertResult;
+  }
+
+  const { monthString, ...updateChanges } = changes;
+  const result = await db.update('accounts', id, updateChanges);
+
+  if (result.ok) {
+    events.emit('account:updated', { account: result.data, changes: updateChanges });
+  }
+
   return result;
 }
 
@@ -103,6 +122,9 @@ async function getIncomeSources() {
  * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
  */
 async function createIncomeSource(data) {
+  if (!data.effective_from) {
+    data.effective_from = new Date().toISOString().split('T')[0];
+  }
   const result = await db.insert('income_sources', data);
   
   if (result.ok) {
@@ -119,12 +141,28 @@ async function createIncomeSource(data) {
  * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
  */
 async function updateIncomeSource(id, changes) {
-  const result = await db.update('income_sources', id, changes);
-  
-  if (result.ok) {
-    events.emit('income-source:updated', { incomeSource: result.data, changes });
+  const existing = db.getById('income_sources', id);
+  if (!existing.ok) {
+    return existing;
   }
-  
+
+  const recordMonth = getRecordMonth(existing.data);
+  if (recordMonth && changes.monthString && recordMonth < changes.monthString) {
+    const insertResult = await forkRecordForMonth('income_sources', existing.data, changes, changes.monthString);
+    if (insertResult.ok) {
+      events.emit('income-source:created', { incomeSource: insertResult.data, forkedFrom: id });
+      return { ok: true, data: insertResult.data, meta: { forked: true, originalId: id } };
+    }
+    return insertResult;
+  }
+
+  const { monthString, ...updateChanges } = changes;
+  const result = await db.update('income_sources', id, updateChanges);
+
+  if (result.ok) {
+    events.emit('income-source:updated', { incomeSource: result.data, changes: updateChanges });
+  }
+
   return result;
 }
 
@@ -191,6 +229,9 @@ async function getCategories(bucketId = null) {
  * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
  */
 async function createCategory(data) {
+  if (!data.effective_from) {
+    data.effective_from = new Date().toISOString().split('T')[0];
+  }
   const result = await db.insert('categories', data);
   
   if (result.ok) {
@@ -207,12 +248,28 @@ async function createCategory(data) {
  * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
  */
 async function updateCategory(id, changes) {
-  const result = await db.update('categories', id, changes);
-  
-  if (result.ok) {
-    events.emit('category:updated', { category: result.data, changes });
+  const existing = db.getById('categories', id);
+  if (!existing.ok) {
+    return existing;
   }
-  
+
+  const recordMonth = getRecordMonth(existing.data);
+  if (recordMonth && changes.monthString && recordMonth < changes.monthString) {
+    const insertResult = await forkRecordForMonth('categories', existing.data, changes, changes.monthString);
+    if (insertResult.ok) {
+      events.emit('category:created', { category: insertResult.data, forkedFrom: id });
+      return { ok: true, data: insertResult.data, meta: { forked: true, originalId: id } };
+    }
+    return insertResult;
+  }
+
+  const { monthString, ...updateChanges } = changes;
+  const result = await db.update('categories', id, updateChanges);
+
+  if (result.ok) {
+    events.emit('category:updated', { category: result.data, changes: updateChanges });
+  }
+
   return result;
 }
 
@@ -251,6 +308,9 @@ async function getPlannedExpenses(bucketId = null) {
  * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
  */
 async function createPlannedExpense(data) {
+  if (!data.effective_from) {
+    data.effective_from = new Date().toISOString().split('T')[0];
+  }
   const result = await db.insert('planned_expenses', data);
   
   if (result.ok) {
@@ -267,12 +327,28 @@ async function createPlannedExpense(data) {
  * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
  */
 async function updatePlannedExpense(id, changes) {
-  const result = await db.update('planned_expenses', id, changes);
-  
-  if (result.ok) {
-    events.emit('planned-expense:updated', { plannedExpense: result.data, changes });
+  const existing = db.getById('planned_expenses', id);
+  if (!existing.ok) {
+    return existing;
   }
-  
+
+  const recordMonth = getRecordMonth(existing.data);
+  if (recordMonth && changes.monthString && recordMonth < changes.monthString) {
+    const insertResult = await forkRecordForMonth('planned_expenses', existing.data, changes, changes.monthString);
+    if (insertResult.ok) {
+      events.emit('planned-expense:created', { plannedExpense: insertResult.data, forkedFrom: id });
+      return { ok: true, data: insertResult.data, meta: { forked: true, originalId: id } };
+    }
+    return insertResult;
+  }
+
+  const { monthString, ...updateChanges } = changes;
+  const result = await db.update('planned_expenses', id, updateChanges);
+
+  if (result.ok) {
+    events.emit('planned-expense:updated', { plannedExpense: result.data, changes: updateChanges });
+  }
+
   return result;
 }
 
@@ -309,6 +385,9 @@ async function getGoals() {
  * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
  */
 async function createGoal(data) {
+  if (!data.effective_from) {
+    data.effective_from = new Date().toISOString().split('T')[0];
+  }
   const result = await db.insert('goals', data);
   
   if (result.ok) {
@@ -325,12 +404,28 @@ async function createGoal(data) {
  * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
  */
 async function updateGoal(id, changes) {
-  const result = await db.update('goals', id, changes);
-  
-  if (result.ok) {
-    events.emit('goal:updated', { goal: result.data, changes });
+  const existing = db.getById('goals', id);
+  if (!existing.ok) {
+    return existing;
   }
-  
+
+  const recordMonth = getRecordMonth(existing.data);
+  if (recordMonth && changes.monthString && recordMonth < changes.monthString) {
+    const insertResult = await forkRecordForMonth('goals', existing.data, changes, changes.monthString);
+    if (insertResult.ok) {
+      events.emit('goal:created', { goal: insertResult.data, forkedFrom: id });
+      return { ok: true, data: insertResult.data, meta: { forked: true, originalId: id } };
+    }
+    return insertResult;
+  }
+
+  const { monthString, ...updateChanges } = changes;
+  const result = await db.update('goals', id, updateChanges);
+
+  if (result.ok) {
+    events.emit('goal:updated', { goal: result.data, changes: updateChanges });
+  }
+
   return result;
 }
 
@@ -347,6 +442,60 @@ async function deleteGoal(id) {
   }
   
   return result;
+}
+
+// ============================================================
+// Restore Functions (Undo Support)
+// ============================================================
+
+/**
+ * Restores a soft-deleted record by table name.
+ * @param {string} table - Table name
+ * @param {number} id - Record ID
+ * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
+ */
+async function restoreRecord(table, id) {
+  const allowedTables = new Set([
+    'accounts',
+    'income_sources',
+    'categories',
+    'planned_expenses',
+    'goals'
+  ]);
+
+  if (!allowedTables.has(table)) {
+    return { ok: false, error: { code: 'INVALID_TABLE', message: `Restore not allowed for table: ${table}` } };
+  }
+
+  const result = await db.execute(
+    `UPDATE ${table} SET is_deleted = 0, updated_at = ? WHERE id = ?`,
+    [new Date().toISOString(), id]
+  );
+
+  if (!result.ok) {
+    return result;
+  }
+
+  const recordResult = await db.getById(table, id);
+  if (!recordResult.ok) {
+    return recordResult;
+  }
+
+  const record = recordResult.data;
+
+  if (table === 'accounts') {
+    events.emit('account:updated', { account: record, changes: { is_deleted: 0 } });
+  } else if (table === 'income_sources') {
+    events.emit('income-source:updated', { incomeSource: record, changes: { is_deleted: 0 } });
+  } else if (table === 'categories') {
+    events.emit('category:updated', { category: record, changes: { is_deleted: 0 } });
+  } else if (table === 'planned_expenses') {
+    events.emit('planned-expense:updated', { plannedExpense: record, changes: { is_deleted: 0 } });
+  } else if (table === 'goals') {
+    events.emit('goal:updated', { goal: record, changes: { is_deleted: 0 } });
+  }
+
+  return { ok: true, data: record };
 }
 
 /**
@@ -448,6 +597,283 @@ async function getBudgetSummary() {
 }
 
 // ============================================================
+// Month-Scoped Update Helpers
+// ============================================================
+
+function stripRecordMeta(record) {
+  const { id, created_at, updated_at, is_deleted, ...rest } = record;
+  return rest;
+}
+
+function stripMonthContext(changes = {}) {
+  const { monthString, ...rest } = changes;
+  return rest;
+}
+
+function getRecordMonth(record) {
+  return normalizeMonthString(record.effective_from || record.created_at);
+}
+
+function getMonthStartDate(monthString) {
+  return monthString ? `${monthString}-01` : null;
+}
+
+async function forkRecordForMonth(table, record, changes, monthString) {
+  const payload = {
+    ...stripRecordMeta(record),
+    ...stripMonthContext(changes),
+    effective_from: getMonthStartDate(monthString)
+  };
+  return await db.insert(table, payload);
+}
+
+// ============================================================
+// Month-Based Budget Data
+// ============================================================
+
+function getMonthRange(monthString) {
+  const [year, month] = monthString.split('-').map(Number);
+  const startDate = `${monthString}-01`;
+  const endDay = new Date(year, month, 0).getDate();
+  const endDate = `${monthString}-${String(endDay).padStart(2, '0')}`;
+  const endDateTime = `${endDate}T23:59:59.999Z`;
+  return { startDate, endDate, endDateTime };
+}
+
+function normalizeMonthString(dateString) {
+  if (!dateString) return null;
+  return dateString.slice(0, 7);
+}
+
+async function getMonthData(table, monthString, orderBy) {
+  const { startDate, endDateTime } = getMonthRange(monthString);
+  return await db.query(
+    table,
+    { effective_from: { between: [startDate, endDateTime] } },
+    { orderBy }
+  );
+}
+
+async function monthHasData(monthString) {
+  const tables = ['accounts', 'income_sources', 'categories', 'planned_expenses', 'goals'];
+
+  for (const table of tables) {
+    const result = await getMonthData(table, monthString, 'effective_from');
+    if (!result.ok) {
+      return result;
+    }
+    if (result.data.length > 0) {
+      return { ok: true, data: true };
+    }
+  }
+
+  return { ok: true, data: false };
+}
+
+async function getLatestEditedMonthBefore(monthString) {
+  const { startDate } = getMonthRange(monthString);
+  const tables = ['accounts', 'income_sources', 'categories', 'planned_expenses', 'goals'];
+  let latest = null;
+
+  for (const table of tables) {
+    const result = await db.query(
+      table,
+      { effective_from: { lt: startDate } },
+      { orderBy: 'updated_at', order: 'desc', limit: 1 }
+    );
+
+    if (!result.ok) {
+      return result;
+    }
+
+    if (result.data.length > 0) {
+      const record = result.data[0];
+      const recordMonth = normalizeMonthString(record.effective_from);
+      if (!recordMonth) {
+        continue;
+      }
+
+      if (!latest || record.updated_at > latest.updated_at) {
+        latest = { month: recordMonth, updated_at: record.updated_at };
+      }
+    }
+  }
+
+  return { ok: true, data: latest ? latest.month : null };
+}
+
+async function copyMonthData(fromMonth, toMonth) {
+  if (!fromMonth || fromMonth === toMonth) {
+    return { ok: true, data: false };
+  }
+
+  const [accountsResult, incomeResult, categoriesResult, expensesResult, goalsResult] = await Promise.all([
+    getMonthData('accounts', fromMonth, 'bank_name'),
+    getMonthData('income_sources', fromMonth, 'source_name'),
+    getMonthData('categories', fromMonth, 'name'),
+    getMonthData('planned_expenses', fromMonth, 'description'),
+    getMonthData('goals', fromMonth, 'target_date')
+  ]);
+
+  const results = [accountsResult, incomeResult, categoriesResult, expensesResult, goalsResult];
+  const failed = results.find(result => !result.ok);
+  if (failed) {
+    return failed;
+  }
+
+  const accountIdMap = new Map();
+  const categoryIdMap = new Map();
+  const toStartDate = `${toMonth}-01`;
+
+  for (const account of accountsResult.data) {
+    const newRecord = {
+      bank_name: account.bank_name,
+      account_type: account.account_type,
+      starting_balance: account.starting_balance,
+      starting_balance_date: account.starting_balance_date,
+      effective_from: toStartDate
+    };
+    const insertResult = await db.insert('accounts', newRecord);
+    if (!insertResult.ok) {
+      return insertResult;
+    }
+    accountIdMap.set(account.id, insertResult.data.id);
+  }
+
+  for (const income of incomeResult.data) {
+    const newRecord = {
+      source_name: income.source_name,
+      income_type: income.income_type,
+      amount: income.amount,
+      account_id: accountIdMap.get(income.account_id) || income.account_id,
+      pay_dates: income.pay_dates,
+      effective_from: toStartDate
+    };
+    const insertResult = await db.insert('income_sources', newRecord);
+    if (!insertResult.ok) {
+      return insertResult;
+    }
+  }
+
+  for (const category of categoriesResult.data) {
+    const newRecord = {
+      name: category.name,
+      bucket_id: category.bucket_id,
+      effective_from: toStartDate
+    };
+    const insertResult = await db.insert('categories', newRecord);
+    if (!insertResult.ok) {
+      return insertResult;
+    }
+    categoryIdMap.set(category.id, insertResult.data.id);
+  }
+
+  for (const expense of expensesResult.data) {
+    const newRecord = {
+      description: expense.description,
+      amount: expense.amount,
+      bucket_id: expense.bucket_id,
+      category_id: categoryIdMap.get(expense.category_id) || expense.category_id,
+      account_id: accountIdMap.get(expense.account_id) || expense.account_id,
+      due_dates: expense.due_dates,
+      is_recurring: expense.is_recurring,
+      recurrence_end_date: expense.recurrence_end_date,
+      effective_from: toStartDate
+    };
+    const insertResult = await db.insert('planned_expenses', newRecord);
+    if (!insertResult.ok) {
+      return insertResult;
+    }
+  }
+
+  for (const goal of goalsResult.data) {
+    const newRecord = {
+      name: goal.name,
+      target_amount: goal.target_amount,
+      target_date: goal.target_date,
+      funded_amount: goal.funded_amount,
+      effective_from: toStartDate
+    };
+    const insertResult = await db.insert('goals', newRecord);
+    if (!insertResult.ok) {
+      return insertResult;
+    }
+  }
+
+  return { ok: true, data: true };
+}
+
+async function ensureMonthData(monthString) {
+  if (!monthString) {
+    return { ok: true, data: false };
+  }
+
+  const hasDataResult = await monthHasData(monthString);
+  if (!hasDataResult.ok) {
+    return hasDataResult;
+  }
+
+  if (hasDataResult.data) {
+    return { ok: true, data: false };
+  }
+
+  const latestMonthResult = await getLatestEditedMonthBefore(monthString);
+  if (!latestMonthResult.ok) {
+    return latestMonthResult;
+  }
+
+  const latestMonth = latestMonthResult.data;
+  if (!latestMonth) {
+    return { ok: true, data: false };
+  }
+
+  return await copyMonthData(latestMonth, monthString);
+}
+
+/**
+ * Gets budget data for a specific month, applying forward carry rules.
+ * @param {string} monthString - Month in YYYY-MM format
+ * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
+ */
+async function getBudgetDataForMonth(monthString) {
+  if (!monthString) {
+    const now = new Date();
+    monthString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+  const ensureResult = await ensureMonthData(monthString);
+  if (!ensureResult.ok) {
+    return ensureResult;
+  }
+
+  const [accounts, incomeSources, buckets, categories, plannedExpenses, goals] = await Promise.all([
+    getMonthData('accounts', monthString, 'bank_name'),
+    getMonthData('income_sources', monthString, 'source_name'),
+    getBuckets(),
+    getMonthData('categories', monthString, 'name'),
+    getMonthData('planned_expenses', monthString, 'description'),
+    getMonthData('goals', monthString, 'target_date')
+  ]);
+
+  const results = [accounts, incomeSources, buckets, categories, plannedExpenses, goals];
+  const failed = results.find(result => !result.ok);
+  if (failed) {
+    return failed;
+  }
+
+  return {
+    ok: true,
+    data: {
+      accounts: accounts.data,
+      incomeSources: incomeSources.data,
+      buckets: buckets.data,
+      categories: categories.data,
+      plannedExpenses: plannedExpenses.data,
+      goals: goals.data
+    }
+  };
+}
+
+// ============================================================
 // Exports
 // ============================================================
 
@@ -488,8 +914,12 @@ module.exports = {
   updateGoal,
   deleteGoal,
   fundGoal,
+  restoreRecord,
   
   // Utilities
   getBucketTotal,
-  getBudgetSummary
+  getBudgetSummary,
+
+  // Month-based
+  getBudgetDataForMonth
 };
