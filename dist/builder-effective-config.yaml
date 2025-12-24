@@ -1,0 +1,37 @@
+directories:
+  output: dist
+  buildResources: build
+appId: com.clarityfinance.app
+productName: Clarity Finance
+copyright: Copyright © 2025
+win:
+  target:
+    - nsis
+  icon: assets/app.ico
+publish:
+  - provider: github
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Clarity Finance
+  uninstallDisplayName: Clarity Finance
+  runAfterFinish: true
+files:
+  - filter:
+      - '**/*'
+      - '!**/*.md'
+      - '!docs/**/*'
+      - '!tests/**/*'
+      - '!.eslintrc.js'
+      - '!jest.config.js'
+      - '!Backups/**/*'
+      - '!.claude/**/*'
+      - '!dist/**/*'
+      - '!win-unpacked/**/*'
+      - '!**/*.log'
+      - '!**/*.zip'
+      - '!**/*.7z'
+electronVersion: 39.2.7
