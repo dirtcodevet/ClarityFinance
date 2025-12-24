@@ -206,6 +206,10 @@ ipcMain.handle("budget:getAccounts", async () => {
   return budget.getAccounts();
 });
 
+ipcMain.handle("budget:getBudgetDataForMonth", async (event, month) => {
+  return budget.getBudgetDataForMonth(month);
+});
+
 ipcMain.handle("budget:createAccount", async (event, data) => {
   return budget.createAccount(data);
 });
@@ -216,6 +220,10 @@ ipcMain.handle("budget:updateAccount", async (event, id, changes) => {
 
 ipcMain.handle("budget:deleteAccount", async (event, id) => {
   return budget.deleteAccount(id);
+});
+
+ipcMain.handle("budget:restoreRecord", async (event, table, id) => {
+  return budget.restoreRecord(table, id);
 });
 
 // --- Income Sources ---
@@ -402,6 +410,10 @@ ipcMain.handle("planning:loadCurrentBudgetData", async () => {
 
 ipcMain.handle("planning:resetSession", async () => {
   return planning.resetSession();
+});
+
+ipcMain.handle("planning:replaceSessionData", async (event, data) => {
+  return planning.replaceSessionData(data);
 });
 
 // --- Session Modifications - Accounts ---

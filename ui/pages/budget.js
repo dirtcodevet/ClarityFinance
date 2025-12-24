@@ -19,7 +19,11 @@ const state = {
   categories: [],
   plannedExpenses: [],
   goals: [],
-  pendingDelete: null
+  pendingDelete: null,
+  undoStack: [],
+  redoStack: [],
+  isReplaying: false,
+  currentMonth: null
 };
 
 // ============================================================
@@ -27,10 +31,12 @@ const state = {
 // ============================================================
 
 const budgetApi = {
+  getBudgetDataForMonth: (month) => ipcRenderer.invoke('budget:getBudgetDataForMonth', month),
   getAccounts: () => ipcRenderer.invoke('budget:getAccounts'),
   createAccount: (data) => ipcRenderer.invoke('budget:createAccount', data),
   updateAccount: (id, changes) => ipcRenderer.invoke('budget:updateAccount', id, changes),
   deleteAccount: (id) => ipcRenderer.invoke('budget:deleteAccount', id),
+  restoreRecord: (table, id) => ipcRenderer.invoke('budget:restoreRecord', table, id),
   getIncomeSources: () => ipcRenderer.invoke('budget:getIncomeSources'),
   createIncomeSource: (data) => ipcRenderer.invoke('budget:createIncomeSource', data),
   updateIncomeSource: (id, changes) => ipcRenderer.invoke('budget:updateIncomeSource', id, changes),
@@ -91,6 +97,60 @@ function getAccountById(id) { return state.accounts.find(a => a.id === id); }
 function getCategoryById(id) { return state.categories.find(c => c.id === id); }
 function getBucketById(id) { return state.buckets.find(b => b.id === id); }
 
+function getDatesInCurrentMonth(dates) {
+  if (!state.currentMonth) return [];
+  return dates.filter(date => date.startsWith(state.currentMonth));
+}
+
+function getMonthlyExpenseTotal(expense) {
+  const dates = parseJsonArray(expense.due_dates);
+  const occurrences = getDatesInCurrentMonth(dates);
+  const count = occurrences.length || 1;
+  return expense.amount * count;
+}
+
+function recordUndoAction(action) {
+  if (state.isReplaying) return;
+  state.undoStack.push(action);
+  state.redoStack = [];
+}
+
+function getEntityHandlers(entity) {
+  const map = {
+    account: {
+      create: budgetApi.createAccount,
+      update: budgetApi.updateAccount,
+      delete: budgetApi.deleteAccount,
+      restore: (id) => budgetApi.restoreRecord('accounts', id)
+    },
+    income: {
+      create: budgetApi.createIncomeSource,
+      update: budgetApi.updateIncomeSource,
+      delete: budgetApi.deleteIncomeSource,
+      restore: (id) => budgetApi.restoreRecord('income_sources', id)
+    },
+    category: {
+      create: budgetApi.createCategory,
+      update: budgetApi.updateCategory,
+      delete: budgetApi.deleteCategory,
+      restore: (id) => budgetApi.restoreRecord('categories', id)
+    },
+    expense: {
+      create: budgetApi.createPlannedExpense,
+      update: budgetApi.updatePlannedExpense,
+      delete: budgetApi.deletePlannedExpense,
+      restore: (id) => budgetApi.restoreRecord('planned_expenses', id)
+    },
+    goal: {
+      create: budgetApi.createGoal,
+      update: budgetApi.updateGoal,
+      delete: budgetApi.deleteGoal,
+      restore: (id) => budgetApi.restoreRecord('goals', id)
+    }
+  };
+  return map[entity];
+}
+
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) { modal.classList.add('active'); const input = modal.querySelector('input:not([type="hidden"]), select'); if (input) setTimeout(() => input.focus(), 100); }
@@ -105,33 +165,43 @@ function closeModal(modalId) {
 // Data Loading
 // ============================================================
 
-async function loadBudgetData() {
+async function loadBudgetData(monthString = null) {
   console.log('[Budget] Loading data...');
-  const [accountsResult, incomeResult, bucketsResult, categoriesResult, expensesResult, goalsResult, balancesResult] = await Promise.all([
-    budgetApi.getAccounts(), budgetApi.getIncomeSources(), budgetApi.getBuckets(),
-    budgetApi.getCategories(), budgetApi.getPlannedExpenses(), budgetApi.getGoals(),
+  if (monthString) {
+    state.currentMonth = monthString;
+  }
+  let activeMonth = state.currentMonth;
+  if (!activeMonth) {
+    const now = new Date();
+    activeMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    state.currentMonth = activeMonth;
+  }
+  const [budgetResult, balancesResult] = await Promise.all([
+    budgetApi.getBudgetDataForMonth(activeMonth),
     dashboardApi.getAccountBalances()
   ]);
 
-  if (!accountsResult.ok || !incomeResult.ok || !bucketsResult.ok || !categoriesResult.ok || !expensesResult.ok || !goalsResult.ok) {
+  if (!budgetResult.ok) {
     showError('Failed to load data'); return;
   }
 
+  const { accounts, incomeSources, buckets, categories, plannedExpenses, goals } = budgetResult.data;
+
   // Merge current balances with account data
-  const accounts = accountsResult.data;
+  const accountList = accounts;
   if (balancesResult.ok && balancesResult.data && balancesResult.data.accounts) {
     const balanceMap = new Map(balancesResult.data.accounts.map(b => [b.id, b.currentBalance]));
-    accounts.forEach(acc => {
+    accountList.forEach(acc => {
       acc.current_balance = balanceMap.get(acc.id) || acc.starting_balance || 0;
     });
   }
 
-  state.accounts = accounts;
-  state.incomeSources = incomeResult.data;
-  state.buckets = bucketsResult.data;
-  state.categories = categoriesResult.data;
-  state.plannedExpenses = expensesResult.data;
-  state.goals = goalsResult.data;
+  state.accounts = accountList;
+  state.incomeSources = incomeSources;
+  state.buckets = buckets;
+  state.categories = categories;
+  state.plannedExpenses = plannedExpenses;
+  state.goals = goals;
 
   renderAccounts(); renderIncomeSources(); renderCategories(); renderBuckets(); renderGoals(); updateDropdowns();
   console.log('[Budget] Data loaded.');
@@ -176,7 +246,7 @@ function renderBuckets() {
   const expenseBuckets = state.buckets.filter(b => b.bucket_key !== 'goals');
   container.innerHTML = expenseBuckets.map(bucket => {
     const bucketExpenses = state.plannedExpenses.filter(e => e.bucket_id === bucket.id);
-    const total = bucketExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const total = bucketExpenses.reduce((sum, e) => sum + getMonthlyExpenseTotal(e), 0);
     const colorClass = getBucketColorClass(bucket.bucket_key);
     return `<div class="card bucket-card" data-bucket-id="${bucket.id}"><div class="card-header ${colorClass}"><div><h3 class="card-title">${bucket.name}</h3><span class="bucket-total">${formatCurrency(total)}</span></div><button class="bucket-add-btn" data-action="add-expense" data-bucket-id="${bucket.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add</button></div><div class="card-body">${bucketExpenses.length === 0 ? '<div class="bucket-empty"><p class="bucket-empty-text">No expenses yet</p></div>' : '<ul class="expense-list">' + bucketExpenses.map(e => {
       const cat = getCategoryById(e.category_id);
@@ -216,8 +286,15 @@ async function addAccount() {
   const type = document.getElementById('account-type').value;
   const balance = parseFloat(document.getElementById('account-balance').value) || 0;
   if (!name) { showError('Please enter a bank name'); return; }
-  const result = await budgetApi.createAccount({ bank_name: name, account_type: type, starting_balance: balance });
+  const payload = {
+    bank_name: name,
+    account_type: type,
+    starting_balance: balance,
+    effective_from: getMonthStartDate()
+  };
+  const result = await budgetApi.createAccount(payload);
   if (!result.ok) { showError(result.error.message); return; }
+  recordUndoAction({ type: 'create', entity: 'account', id: result.data.id, payload });
   document.getElementById('account-name').value = ''; document.getElementById('account-balance').value = '';
   await loadBudgetData();
 }
@@ -228,14 +305,28 @@ async function saveAccount() {
   const type = document.getElementById('edit-account-type').value;
   const balance = parseFloat(document.getElementById('edit-account-balance').value) || 0;
   if (!name) { showError('Please enter a bank name'); return; }
+  const previous = state.accounts.find(a => a.id === id);
   const result = await budgetApi.updateAccount(id, { bank_name: name, account_type: type, starting_balance: balance });
   if (!result.ok) { showError(result.error.message); return; }
+  if (previous) {
+    recordUndoAction({
+      type: 'update',
+      entity: 'account',
+      id,
+      previous: JSON.parse(JSON.stringify(previous)),
+      next: { bank_name: name, account_type: type, starting_balance: balance }
+    });
+  }
   closeModal('modal-edit-account'); await loadBudgetData();
 }
 
 async function deleteAccount(id) {
+  const previous = state.accounts.find(a => a.id === id);
   const result = await budgetApi.deleteAccount(id);
   if (!result.ok) { showError(result.error.message); return; }
+  if (previous) {
+    recordUndoAction({ type: 'delete', entity: 'account', id });
+  }
   await loadBudgetData();
 }
 
@@ -247,8 +338,17 @@ async function addIncomeSource() {
   if (!name) { showError('Please enter a source name'); return; }
   if (!accountId) { showError('Please select an account'); return; }
   if (amount <= 0) { showError('Please enter a valid amount'); return; }
-  const result = await budgetApi.createIncomeSource({ source_name: name, income_type: type, amount, account_id: accountId, pay_dates: '[]' });
+  const payload = {
+    source_name: name,
+    income_type: type,
+    amount,
+    account_id: accountId,
+    pay_dates: '[]',
+    effective_from: getMonthStartDate()
+  };
+  const result = await budgetApi.createIncomeSource(payload);
   if (!result.ok) { showError(result.error.message); return; }
+  recordUndoAction({ type: 'create', entity: 'income', id: result.data.id, payload });
   document.getElementById('income-name').value = ''; document.getElementById('income-amount').value = '';
   await loadBudgetData();
 }
@@ -261,14 +361,29 @@ async function saveIncomeSource() {
   const accountId = parseInt(document.getElementById('edit-income-account').value);
   const datesStr = document.getElementById('edit-income-dates').value;
   if (!name) { showError('Please enter a source name'); return; }
-  const result = await budgetApi.updateIncomeSource(id, { source_name: name, income_type: type, amount, account_id: accountId, pay_dates: datesToJson(datesStr) });
+  const previous = state.incomeSources.find(i => i.id === id);
+  const changes = { source_name: name, income_type: type, amount, account_id: accountId, pay_dates: datesToJson(datesStr) };
+  const result = await budgetApi.updateIncomeSource(id, changes);
   if (!result.ok) { showError(result.error.message); return; }
+  if (previous) {
+    recordUndoAction({
+      type: 'update',
+      entity: 'income',
+      id,
+      previous: JSON.parse(JSON.stringify(previous)),
+      next: changes
+    });
+  }
   closeModal('modal-edit-income'); await loadBudgetData();
 }
 
 async function deleteIncomeSource(id) {
+  const previous = state.incomeSources.find(i => i.id === id);
   const result = await budgetApi.deleteIncomeSource(id);
   if (!result.ok) { showError(result.error.message); return; }
+  if (previous) {
+    recordUndoAction({ type: 'delete', entity: 'income', id });
+  }
   await loadBudgetData();
 }
 
@@ -277,8 +392,10 @@ async function addCategory() {
   const bucketId = parseInt(document.getElementById('category-bucket').value);
   if (!name) { showError('Please enter a category name'); return; }
   if (!bucketId) { showError('Please select a bucket'); return; }
-  const result = await budgetApi.createCategory({ name, bucket_id: bucketId });
+  const payload = { name, bucket_id: bucketId, effective_from: getMonthStartDate() };
+  const result = await budgetApi.createCategory(payload);
   if (!result.ok) { showError(result.error.message); return; }
+  recordUndoAction({ type: 'create', entity: 'category', id: result.data.id, payload });
   document.getElementById('category-name').value = '';
   await loadBudgetData();
 }
@@ -288,14 +405,29 @@ async function saveCategory() {
   const name = document.getElementById('edit-category-name').value.trim();
   const bucketId = parseInt(document.getElementById('edit-category-bucket').value);
   if (!name) { showError('Please enter a category name'); return; }
-  const result = await budgetApi.updateCategory(id, { name, bucket_id: bucketId });
+  const previous = state.categories.find(c => c.id === id);
+  const changes = { name, bucket_id: bucketId };
+  const result = await budgetApi.updateCategory(id, changes);
   if (!result.ok) { showError(result.error.message); return; }
+  if (previous) {
+    recordUndoAction({
+      type: 'update',
+      entity: 'category',
+      id,
+      previous: JSON.parse(JSON.stringify(previous)),
+      next: changes
+    });
+  }
   closeModal('modal-edit-category'); await loadBudgetData();
 }
 
 async function deleteCategory(id) {
+  const previous = state.categories.find(c => c.id === id);
   const result = await budgetApi.deleteCategory(id);
   if (!result.ok) { showError(result.error.message); return; }
+  if (previous) {
+    recordUndoAction({ type: 'delete', entity: 'category', id });
+  }
   await loadBudgetData();
 }
 
@@ -312,10 +444,20 @@ async function addPlannedExpense() {
   if (!accountId) { showError('Please select an account'); return; }
   const isRecurring = document.getElementById('add-expense-recurring').checked ? 1 : 0;
   const endDate = document.getElementById('add-expense-end-date').value || null;
-  const data = { description, amount, bucket_id: bucketId, category_id: categoryId, account_id: accountId, due_dates: datesToJson(datesStr), is_recurring: isRecurring };
+  const data = {
+    description,
+    amount,
+    bucket_id: bucketId,
+    category_id: categoryId,
+    account_id: accountId,
+    due_dates: datesToJson(datesStr),
+    is_recurring: isRecurring,
+    effective_from: getMonthStartDate()
+  };
   if (endDate) data.recurrence_end_date = endDate;
   const result = await budgetApi.createPlannedExpense(data);
   if (!result.ok) { showError(result.error.message); return; }
+  recordUndoAction({ type: 'create', entity: 'expense', id: result.data.id, payload: data });
   closeModal('modal-add-expense'); await loadBudgetData();
 }
 
@@ -335,12 +477,23 @@ async function savePlannedExpense() {
   if (endDate) data.recurrence_end_date = endDate;
   const result = await budgetApi.updatePlannedExpense(id, data);
   if (!result.ok) { showError(result.error.message); return; }
+  recordUndoAction({
+    type: 'update',
+    entity: 'expense',
+    id,
+    previous: JSON.parse(JSON.stringify(expense)),
+    next: data
+  });
   closeModal('modal-edit-expense'); await loadBudgetData();
 }
 
 async function deletePlannedExpense(id) {
+  const previous = state.plannedExpenses.find(e => e.id === id);
   const result = await budgetApi.deletePlannedExpense(id);
   if (!result.ok) { showError(result.error.message); return; }
+  if (previous) {
+    recordUndoAction({ type: 'delete', entity: 'expense', id });
+  }
   await loadBudgetData();
 }
 
@@ -351,8 +504,16 @@ async function addGoal() {
   if (!name) { showError('Please enter a goal name'); return; }
   if (target <= 0) { showError('Please enter a valid target'); return; }
   if (!date) { showError('Please select a date'); return; }
-  const result = await budgetApi.createGoal({ name, target_amount: target, target_date: date, funded_amount: 0 });
+  const payload = {
+    name,
+    target_amount: target,
+    target_date: date,
+    funded_amount: 0,
+    effective_from: getMonthStartDate()
+  };
+  const result = await budgetApi.createGoal(payload);
   if (!result.ok) { showError(result.error.message); return; }
+  recordUndoAction({ type: 'create', entity: 'goal', id: result.data.id, payload });
   document.getElementById('goal-name').value = ''; document.getElementById('goal-target').value = ''; document.getElementById('goal-date').value = '';
   await loadBudgetData();
 }
@@ -364,14 +525,29 @@ async function saveGoal() {
   const date = document.getElementById('edit-goal-date').value;
   const funded = parseFloat(document.getElementById('edit-goal-funded').value) || 0;
   if (!name) { showError('Please enter a goal name'); return; }
-  const result = await budgetApi.updateGoal(id, { name, target_amount: target, target_date: date, funded_amount: funded });
+  const previous = state.goals.find(g => g.id === id);
+  const changes = { name, target_amount: target, target_date: date, funded_amount: funded };
+  const result = await budgetApi.updateGoal(id, changes);
   if (!result.ok) { showError(result.error.message); return; }
+  if (previous) {
+    recordUndoAction({
+      type: 'update',
+      entity: 'goal',
+      id,
+      previous: JSON.parse(JSON.stringify(previous)),
+      next: changes
+    });
+  }
   closeModal('modal-edit-goal'); await loadBudgetData();
 }
 
 async function deleteGoal(id) {
+  const previous = state.goals.find(g => g.id === id);
   const result = await budgetApi.deleteGoal(id);
   if (!result.ok) { showError(result.error.message); return; }
+  if (previous) {
+    recordUndoAction({ type: 'delete', entity: 'goal', id });
+  }
   await loadBudgetData();
 }
 
@@ -515,6 +691,51 @@ function setupQuickAddKeyboard() {
   ['goal-name', 'goal-target', 'goal-date'].forEach(id => { document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') addGoal(); }); });
 }
 
+async function handleUndo() {
+  const action = state.undoStack.pop();
+  if (!action) return;
+
+  const handlers = getEntityHandlers(action.entity);
+  if (!handlers) return;
+
+  state.isReplaying = true;
+  if (action.type === 'create') {
+    await handlers.delete(action.id);
+  } else if (action.type === 'update') {
+    await handlers.update(action.id, action.previous);
+  } else if (action.type === 'delete') {
+    await handlers.restore(action.id);
+  }
+  state.isReplaying = false;
+
+  state.redoStack.push(action);
+  await loadBudgetData();
+}
+
+async function handleRedo() {
+  const action = state.redoStack.pop();
+  if (!action) return;
+
+  const handlers = getEntityHandlers(action.entity);
+  if (!handlers) return;
+
+  state.isReplaying = true;
+  if (action.type === 'create') {
+    const result = await handlers.create(action.payload);
+    if (result.ok) {
+      action.id = result.data.id;
+    }
+  } else if (action.type === 'update') {
+    await handlers.update(action.id, action.next);
+  } else if (action.type === 'delete') {
+    await handlers.delete(action.id);
+  }
+  state.isReplaying = false;
+
+  state.undoStack.push(action);
+  await loadBudgetData();
+}
+
 // ============================================================
 // Initialization
 // ============================================================
@@ -579,6 +800,42 @@ function initializeBudgetPage() {
   document.querySelectorAll('[data-action="save"]').forEach(btn => {
     btn.addEventListener('click', e => { const modal = e.target.closest('.modal-overlay'); handleModalSave(modal); });
   });
+
+  // Enter to submit in modals
+  document.querySelectorAll('.modal-overlay').forEach(modal => {
+    modal.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey && !e.target.matches('textarea')) {
+        handleModalSave(modal);
+      }
+    });
+  });
+
+  // Undo/redo shortcuts
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      handleUndo();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+      e.preventDefault();
+      handleRedo();
+    }
+  });
 }
 
-module.exports = { initializeBudgetPage, loadBudgetData, openModal, closeModal };
+function setCurrentMonth(monthString) {
+  state.currentMonth = monthString;
+}
+
+function getMonthStartDate() {
+  if (!state.currentMonth) return new Date().toISOString().split('T')[0];
+  return `${state.currentMonth}-01`;
+}
+
+module.exports = {
+  initializeBudgetPage,
+  loadBudgetData,
+  openModal,
+  closeModal,
+  setCurrentMonth
+};

@@ -118,6 +118,13 @@
                 <input type="date" id="ledger-start-date">
                 <span class="date-separator">to</span>
                 <input type="date" id="ledger-end-date">
+                <button class="btn-icon ledger-refresh-btn" id="ledger-refresh-month" title="Align to selected month">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                </button>
               </div>
               <span class="transaction-count" id="ledger-transaction-count">
                 <strong>0</strong> transactions
@@ -722,7 +729,16 @@
         <div class="form-group"><label class="form-label">Amount</label><div class="input-with-prefix"><span class="input-prefix">$</span><input type="number" class="form-input" id="planning-add-expense-amount" step="0.01" placeholder="0.00"></div></div>
         <div class="form-group"><label class="form-label">Category</label><select class="form-select" id="planning-add-expense-category"></select></div>
         <div class="form-group"><label class="form-label">Payment Account</label><select class="form-select" id="planning-add-expense-account"></select></div>
-        <div class="form-group"><label class="form-label">Due Dates (comma-separated YYYY-MM-DD)</label><input type="text" class="form-input" id="planning-add-expense-dates" placeholder="2024-01-01"></div>
+        <div class="form-group"><label class="form-label">Due Dates (click to select)</label><input type="text" class="form-input" id="planning-add-expense-dates" placeholder="Select dates"></div>
+        <div class="form-group">
+          <label class="form-label">
+            <input type="checkbox" id="planning-add-expense-recurring"> Recurring monthly
+          </label>
+        </div>
+        <div class="form-group" id="planning-add-expense-end-date-group" style="display:none;">
+          <label class="form-label">Ends On (optional)</label>
+          <input type="date" class="form-input" id="planning-add-expense-end-date">
+        </div>
       </div>
       <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Add Expense</button></div>
     </div>
@@ -738,7 +754,16 @@
         <div class="form-group"><label class="form-label">Amount</label><div class="input-with-prefix"><span class="input-prefix">$</span><input type="number" class="form-input" id="planning-edit-expense-amount" step="0.01"></div></div>
         <div class="form-group"><label class="form-label">Category</label><select class="form-select" id="planning-edit-expense-category"></select></div>
         <div class="form-group"><label class="form-label">Payment Account</label><select class="form-select" id="planning-edit-expense-account"></select></div>
-        <div class="form-group"><label class="form-label">Due Dates (comma-separated YYYY-MM-DD)</label><input type="text" class="form-input" id="planning-edit-expense-dates" placeholder="2024-01-01"></div>
+        <div class="form-group"><label class="form-label">Due Dates (click to select)</label><input type="text" class="form-input" id="planning-edit-expense-dates" placeholder="Select dates"></div>
+        <div class="form-group">
+          <label class="form-label">
+            <input type="checkbox" id="planning-edit-expense-recurring"> Recurring monthly
+          </label>
+        </div>
+        <div class="form-group" id="planning-edit-expense-end-date-group" style="display:none;">
+          <label class="form-label">Ends On (optional)</label>
+          <input type="date" class="form-input" id="planning-edit-expense-end-date">
+        </div>
       </div>
       <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Save</button></div>
     </div>
@@ -767,6 +792,31 @@
         <p class="confirm-warning">This will only remove it from the planning session, not from your actual budget.</p>
       </div>
       <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">No, Cancel</button><button class="btn btn-danger" data-action="confirm">Yes, Delete</button></div>
+    </div>
+  </div>
+
+  <!-- Planning Refresh Confirmation Modal -->
+  <div class="modal-overlay" id="planning-modal-refresh">
+    <div class="modal modal-small">
+      <div class="modal-body">
+        <p class="confirm-message">Reset all planning data to current budget defaults?</p>
+        <p class="confirm-warning">This will discard your current scenario changes.</p>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">No, Keep Changes</button><button class="btn btn-danger" data-action="confirm">Yes, Reset</button></div>
+    </div>
+  </div>
+
+  <!-- Planning Save Scenario Modal -->
+  <div class="modal-overlay" id="planning-modal-save-scenario">
+    <div class="modal modal-small">
+      <div class="modal-header"><h3 class="modal-title">Save Scenario</h3><button class="modal-close" data-action="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Scenario Name</label>
+          <input type="text" class="form-input" id="planning-save-scenario-name" placeholder="e.g., Summer Budget">
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-action="cancel">Cancel</button><button class="btn btn-primary" data-action="save">Save</button></div>
     </div>
   </div>
 

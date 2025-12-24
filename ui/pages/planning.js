@@ -7,6 +7,7 @@
  */
 
 const { ipcRenderer } = require('electron');
+const flatpickr = require('flatpickr');
 
 // ============================================================
 // State
@@ -19,7 +20,10 @@ const state = {
   projectionData: null,
   insights: [],
   visibleAccounts: [],
-  pendingDelete: null
+  pendingDelete: null,
+  undoStack: [],
+  redoStack: [],
+  isReplaying: false
 };
 
 // ============================================================
@@ -47,6 +51,7 @@ const planningApi = {
   deleteSessionGoal: (id) => ipcRenderer.invoke('planning:deleteSessionGoal', id),
   calculateBalanceProjection: (startDate, endDate) => ipcRenderer.invoke('planning:calculateBalanceProjection', startDate, endDate),
   generateInsights: () => ipcRenderer.invoke('planning:generateInsights'),
+  replaceSessionData: (data) => ipcRenderer.invoke('planning:replaceSessionData', data),
   saveScenario: (name) => ipcRenderer.invoke('planning:saveScenario', name),
   getScenarios: () => ipcRenderer.invoke('planning:getScenarios'),
   loadScenario: (id) => ipcRenderer.invoke('planning:loadScenario', id),
@@ -75,6 +80,48 @@ function datesToJson(datesStr) {
   if (!datesStr) return '[]';
   const dates = datesStr.split(',').map(d => d.trim()).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
   return JSON.stringify(dates);
+}
+
+function cloneSessionData(data) {
+  return JSON.parse(JSON.stringify(data));
+}
+
+function recordUndoSnapshot() {
+  if (state.isReplaying || !state.sessionData) return;
+  state.undoStack.push(cloneSessionData(state.sessionData));
+  state.redoStack = [];
+}
+
+async function handleUndo() {
+  const previous = state.undoStack.pop();
+  if (!previous) return;
+
+  state.redoStack.push(cloneSessionData(state.sessionData));
+  state.isReplaying = true;
+  const result = await planningApi.replaceSessionData(previous);
+  if (result.ok) {
+    state.sessionData = result.data;
+    await loadSessionData();
+  } else {
+    showError(result.error.message);
+  }
+  state.isReplaying = false;
+}
+
+async function handleRedo() {
+  const next = state.redoStack.pop();
+  if (!next) return;
+
+  state.undoStack.push(cloneSessionData(state.sessionData));
+  state.isReplaying = true;
+  const result = await planningApi.replaceSessionData(next);
+  if (result.ok) {
+    state.sessionData = result.data;
+    await loadSessionData();
+  } else {
+    showError(result.error.message);
+  }
+  state.isReplaying = false;
 }
 
 function showError(message) {
@@ -134,6 +181,9 @@ async function initializePlanningPage() {
 
   // Set up modal handlers
   setupModalHandlers();
+  setupDatePickers();
+  setupRecurringToggles();
+  setupKeyboardShortcuts();
 
   console.log('[Planning] Page initialized.');
 }
@@ -153,6 +203,10 @@ async function loadSessionData() {
   }
 
   state.sessionData = result.data;
+  if (!state.isReplaying) {
+    state.undoStack = [];
+    state.redoStack = [];
+  }
 
   // Initialize visible accounts (all visible by default)
   state.visibleAccounts = state.sessionData.accounts
@@ -603,6 +657,46 @@ function renderBalanceProjectionChart() {
       ctx.fillText(proj.accountName, lastX + 10, lastY);
     }
   });
+
+  setupPlanningChartTooltip(container, canvas, visibleProjections, padding, chartWidth, chartHeight, minBalance, maxBalance);
+}
+
+function setupPlanningChartTooltip(container, canvas, projections, padding, chartWidth, chartHeight, minBalance, maxBalance) {
+  let tooltip = container.querySelector('.planning-chart-tooltip');
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.className = 'planning-chart-tooltip';
+    container.appendChild(tooltip);
+  }
+
+  const dataPoints = projections[0]?.dataPoints || [];
+  const xScale = (index) => padding + (index / Math.max(dataPoints.length - 1, 1)) * chartWidth;
+  const yScale = (value) => container.clientHeight - padding - ((value - minBalance) / (maxBalance - minBalance)) * chartHeight;
+
+  canvas.onmousemove = (event) => {
+    if (dataPoints.length === 0) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const relativeX = Math.min(Math.max(x - padding, 0), chartWidth);
+    const index = Math.round((relativeX / chartWidth) * (dataPoints.length - 1));
+    const date = dataPoints[index].date;
+
+    const lines = projections.map(proj => {
+      const point = proj.dataPoints[index];
+      return `<div>${proj.accountName}: ${formatCurrency(point.balance)}</div>`;
+    }).join('');
+
+    const xPos = xScale(index);
+    const yPos = yScale(projections[0].dataPoints[index].balance);
+    tooltip.innerHTML = `<div>${formatDate(date)}</div>${lines}`;
+    tooltip.style.left = `${xPos}px`;
+    tooltip.style.top = `${yPos}px`;
+    tooltip.style.display = 'block';
+  };
+
+  canvas.onmouseleave = () => {
+    tooltip.style.display = 'none';
+  };
 }
 
 // ============================================================
@@ -667,27 +761,61 @@ function setupEventListeners() {
   document.getElementById('page-planning').addEventListener('click', handleActionClick);
 }
 
-async function handleRefresh() {
-  if (confirm('Reset all planning data to current budget defaults? This will discard all changes.')) {
-    const result = await planningApi.resetSession();
-    if (result.ok) {
-      await loadSessionData();
-    } else {
-      showError('Failed to reset session');
+function setupKeyboardShortcuts() {
+  const quickAddFields = [
+    'planning-account-name', 'planning-account-type', 'planning-account-balance',
+    'planning-income-name', 'planning-income-type', 'planning-income-amount', 'planning-income-account',
+    'planning-category-name', 'planning-category-bucket',
+    'planning-goal-name', 'planning-goal-target', 'planning-goal-date'
+  ];
+
+  quickAddFields.forEach(id => {
+    document.getElementById(id)?.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || e.shiftKey) return;
+      if (id.startsWith('planning-account')) handleAddAccount();
+      else if (id.startsWith('planning-income')) handleAddIncome();
+      else if (id.startsWith('planning-category')) handleAddCategory();
+      else if (id.startsWith('planning-goal')) handleAddGoal();
+    });
+  });
+
+  document.querySelectorAll('.modal-overlay').forEach(modal => {
+    modal.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey && !e.target.matches('textarea')) {
+        const saveButton = modal.querySelector('[data-action="save"], [data-action="confirm"]');
+        if (saveButton) saveButton.click();
+      }
+    });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      handleSaveScenario();
     }
-  }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r') {
+      e.preventDefault();
+      handleRefresh();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      handleUndo();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+      e.preventDefault();
+      handleRedo();
+    }
+  });
 }
 
-async function handleSaveScenario() {
-  const name = prompt('Enter a name for this planning scenario:');
-  if (name) {
-    const result = await planningApi.saveScenario(name);
-    if (result.ok) {
-      alert('Scenario saved successfully!');
-    } else {
-      showError('Failed to save scenario');
-    }
-  }
+function handleRefresh() {
+  openModal('planning-modal-refresh');
+}
+
+function handleSaveScenario() {
+  const input = document.getElementById('planning-save-scenario-name');
+  if (input) input.value = '';
+  openModal('planning-modal-save-scenario');
 }
 
 function handleActionClick(e) {
@@ -730,6 +858,7 @@ async function handleAddAccount() {
     starting_balance: startingBalance
   };
 
+  recordUndoSnapshot();
   const result = await planningApi.createSessionAccount(data);
   if (result.ok) {
     // Clear inputs
@@ -770,6 +899,7 @@ async function handleAddIncome() {
     pay_dates: '[]'
   };
 
+  recordUndoSnapshot();
   const result = await planningApi.createSessionIncomeSource(data);
   if (result.ok) {
     // Clear inputs
@@ -802,6 +932,7 @@ async function handleAddCategory() {
     bucket_id: bucketId
   };
 
+  recordUndoSnapshot();
   const result = await planningApi.createSessionCategory(data);
   if (result.ok) {
     // Clear inputs
@@ -839,6 +970,7 @@ async function handleAddGoal() {
     funded_amount: 0
   };
 
+  recordUndoSnapshot();
   const result = await planningApi.createSessionGoal(data);
   if (result.ok) {
     // Clear inputs
@@ -877,6 +1009,52 @@ function setupModalHandlers() {
 
   // Delete Confirmation Modal
   document.querySelector('#planning-modal-confirm-delete [data-action="confirm"]').addEventListener('click', confirmDelete);
+
+  // Refresh Confirmation Modal
+  document.querySelector('#planning-modal-refresh [data-action="confirm"]').addEventListener('click', confirmRefresh);
+
+  // Save Scenario Modal
+  document.querySelector('#planning-modal-save-scenario [data-action="save"]').addEventListener('click', confirmSaveScenario);
+}
+
+function setupDatePickers() {
+  const addExpenseDatesInput = document.getElementById('planning-add-expense-dates');
+  const editExpenseDatesInput = document.getElementById('planning-edit-expense-dates');
+
+  if (addExpenseDatesInput) {
+    flatpickr(addExpenseDatesInput, {
+      mode: 'multiple',
+      dateFormat: 'Y-m-d',
+      conjunction: ', ',
+      allowInput: false
+    });
+  }
+
+  if (editExpenseDatesInput) {
+    flatpickr(editExpenseDatesInput, {
+      mode: 'multiple',
+      dateFormat: 'Y-m-d',
+      conjunction: ', ',
+      allowInput: false
+    });
+  }
+}
+
+function setupRecurringToggles() {
+  const addRecurringCheckbox = document.getElementById('planning-add-expense-recurring');
+  const editRecurringCheckbox = document.getElementById('planning-edit-expense-recurring');
+
+  if (addRecurringCheckbox) {
+    addRecurringCheckbox.addEventListener('change', (e) => {
+      document.getElementById('planning-add-expense-end-date-group').style.display = e.target.checked ? 'block' : 'none';
+    });
+  }
+
+  if (editRecurringCheckbox) {
+    editRecurringCheckbox.addEventListener('change', (e) => {
+      document.getElementById('planning-edit-expense-end-date-group').style.display = e.target.checked ? 'block' : 'none';
+    });
+  }
 }
 
 // Account Modals
@@ -900,6 +1078,7 @@ async function saveAccountEdit() {
     starting_balance: parseFloat(document.getElementById('planning-edit-account-balance').value)
   };
 
+  recordUndoSnapshot();
   const result = await planningApi.updateSessionAccount(id, changes);
   if (result.ok) {
     closeModal('planning-modal-edit-account');
@@ -943,6 +1122,7 @@ async function saveIncomeEdit() {
     pay_dates: datesToJson(document.getElementById('planning-edit-income-dates').value)
   };
 
+  recordUndoSnapshot();
   const result = await planningApi.updateSessionIncomeSource(id, changes);
   if (result.ok) {
     closeModal('planning-modal-edit-income');
@@ -980,6 +1160,7 @@ async function saveCategoryEdit() {
     bucket_id: parseInt(document.getElementById('planning-edit-category-bucket').value)
   };
 
+  recordUndoSnapshot();
   const result = await planningApi.updateSessionCategory(id, changes);
   if (result.ok) {
     closeModal('planning-modal-edit-category');
@@ -1006,6 +1187,9 @@ function openAddExpenseModal(bucketId) {
   document.getElementById('planning-add-expense-category').value = '';
   document.getElementById('planning-add-expense-account').value = '';
   document.getElementById('planning-add-expense-dates').value = '';
+  document.getElementById('planning-add-expense-recurring').checked = false;
+  document.getElementById('planning-add-expense-end-date').value = '';
+  document.getElementById('planning-add-expense-end-date-group').style.display = 'none';
 
   openModal('planning-modal-add-expense');
 }
@@ -1017,9 +1201,12 @@ async function saveExpenseAdd() {
     amount: parseFloat(document.getElementById('planning-add-expense-amount').value),
     category_id: parseInt(document.getElementById('planning-add-expense-category').value),
     account_id: parseInt(document.getElementById('planning-add-expense-account').value),
-    due_dates: datesToJson(document.getElementById('planning-add-expense-dates').value)
+    due_dates: datesToJson(document.getElementById('planning-add-expense-dates').value),
+    is_recurring: document.getElementById('planning-add-expense-recurring').checked ? 1 : 0,
+    recurrence_end_date: document.getElementById('planning-add-expense-end-date').value || null
   };
 
+  recordUndoSnapshot();
   const result = await planningApi.createSessionPlannedExpense(data);
   if (result.ok) {
     closeModal('planning-modal-add-expense');
@@ -1041,6 +1228,9 @@ function openEditExpenseModal(id) {
   document.getElementById('planning-edit-expense-category').value = expense.category_id;
   document.getElementById('planning-edit-expense-account').value = expense.account_id;
   document.getElementById('planning-edit-expense-dates').value = parseJsonArray(expense.due_dates).join(', ');
+  document.getElementById('planning-edit-expense-recurring').checked = expense.is_recurring === 1;
+  document.getElementById('planning-edit-expense-end-date').value = expense.recurrence_end_date || '';
+  document.getElementById('planning-edit-expense-end-date-group').style.display = expense.is_recurring === 1 ? 'block' : 'none';
 
   openModal('planning-modal-edit-expense');
 }
@@ -1052,9 +1242,12 @@ async function saveExpenseEdit() {
     amount: parseFloat(document.getElementById('planning-edit-expense-amount').value),
     category_id: parseInt(document.getElementById('planning-edit-expense-category').value),
     account_id: parseInt(document.getElementById('planning-edit-expense-account').value),
-    due_dates: datesToJson(document.getElementById('planning-edit-expense-dates').value)
+    due_dates: datesToJson(document.getElementById('planning-edit-expense-dates').value),
+    is_recurring: document.getElementById('planning-edit-expense-recurring').checked ? 1 : 0,
+    recurrence_end_date: document.getElementById('planning-edit-expense-end-date').value || null
   };
 
+  recordUndoSnapshot();
   const result = await planningApi.updateSessionPlannedExpense(id, changes);
   if (result.ok) {
     closeModal('planning-modal-edit-expense');
@@ -1069,6 +1262,32 @@ function handleDeleteExpense(id) {
   document.getElementById('planning-confirm-delete-message').textContent =
     'Are you sure you want to delete this planned expense from the planning session?';
   openModal('planning-modal-confirm-delete');
+}
+
+async function confirmRefresh() {
+  const result = await planningApi.resetSession();
+  if (result.ok) {
+    closeModal('planning-modal-refresh');
+    await loadSessionData();
+  } else {
+    showError('Failed to reset session');
+  }
+}
+
+async function confirmSaveScenario() {
+  const nameInput = document.getElementById('planning-save-scenario-name');
+  const name = nameInput ? nameInput.value.trim() : '';
+  if (!name) {
+    showError('Please enter a scenario name');
+    return;
+  }
+
+  const result = await planningApi.saveScenario(name);
+  if (result.ok) {
+    closeModal('planning-modal-save-scenario');
+  } else {
+    showError('Failed to save scenario');
+  }
 }
 
 // Goal Modals
@@ -1094,6 +1313,7 @@ async function saveGoalEdit() {
     funded_amount: parseFloat(document.getElementById('planning-edit-goal-funded').value)
   };
 
+  recordUndoSnapshot();
   const result = await planningApi.updateSessionGoal(id, changes);
   if (result.ok) {
     closeModal('planning-modal-edit-goal');
@@ -1117,6 +1337,7 @@ async function confirmDelete() {
   const { type, id } = state.pendingDelete;
   let result;
 
+  recordUndoSnapshot();
   switch(type) {
     case 'account': result = await planningApi.deleteSessionAccount(id); break;
     case 'income': result = await planningApi.deleteSessionIncomeSource(id); break;
