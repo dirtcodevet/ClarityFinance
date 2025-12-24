@@ -44,6 +44,9 @@ async function createAccount(data) {
   if (!data.starting_balance_date) {
     data.starting_balance_date = new Date().toISOString().split('T')[0];
   }
+  if (!data.effective_from) {
+    data.effective_from = new Date().toISOString().split('T')[0];
+  }
 
   const result = await db.insert('accounts', data);
 
@@ -103,6 +106,9 @@ async function getIncomeSources() {
  * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
  */
 async function createIncomeSource(data) {
+  if (!data.effective_from) {
+    data.effective_from = new Date().toISOString().split('T')[0];
+  }
   const result = await db.insert('income_sources', data);
   
   if (result.ok) {
@@ -251,6 +257,9 @@ async function getPlannedExpenses(bucketId = null) {
  * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
  */
 async function createPlannedExpense(data) {
+  if (!data.effective_from) {
+    data.effective_from = new Date().toISOString().split('T')[0];
+  }
   const result = await db.insert('planned_expenses', data);
   
   if (result.ok) {
@@ -309,6 +318,9 @@ async function getGoals() {
  * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
  */
 async function createGoal(data) {
+  if (!data.effective_from) {
+    data.effective_from = new Date().toISOString().split('T')[0];
+  }
   const result = await db.insert('goals', data);
   
   if (result.ok) {
@@ -448,6 +460,237 @@ async function getBudgetSummary() {
 }
 
 // ============================================================
+// Month-Based Budget Data
+// ============================================================
+
+function getMonthRange(monthString) {
+  const [year, month] = monthString.split('-').map(Number);
+  const startDate = `${monthString}-01`;
+  const endDay = new Date(year, month, 0).getDate();
+  const endDate = `${monthString}-${String(endDay).padStart(2, '0')}`;
+  const endDateTime = `${endDate}T23:59:59.999Z`;
+  return { startDate, endDate, endDateTime };
+}
+
+function normalizeMonthString(dateString) {
+  if (!dateString) return null;
+  return dateString.slice(0, 7);
+}
+
+async function getMonthData(table, monthString, orderBy) {
+  const { startDate, endDateTime } = getMonthRange(monthString);
+  return await db.query(
+    table,
+    { effective_from: { between: [startDate, endDateTime] } },
+    { orderBy }
+  );
+}
+
+async function monthHasData(monthString) {
+  const tables = ['accounts', 'income_sources', 'planned_expenses', 'goals'];
+
+  for (const table of tables) {
+    const result = await getMonthData(table, monthString, 'effective_from');
+    if (!result.ok) {
+      return result;
+    }
+    if (result.data.length > 0) {
+      return { ok: true, data: true };
+    }
+  }
+
+  return { ok: true, data: false };
+}
+
+async function getLatestEditedMonthBefore(monthString) {
+  const { startDate } = getMonthRange(monthString);
+  const tables = ['accounts', 'income_sources', 'planned_expenses', 'goals'];
+  let latest = null;
+
+  for (const table of tables) {
+    const result = await db.query(
+      table,
+      { effective_from: { lt: startDate } },
+      { orderBy: 'updated_at', order: 'desc', limit: 1 }
+    );
+
+    if (!result.ok) {
+      return result;
+    }
+
+    if (result.data.length > 0) {
+      const record = result.data[0];
+      const recordMonth = normalizeMonthString(record.effective_from);
+      if (!recordMonth) {
+        continue;
+      }
+
+      if (!latest || record.updated_at > latest.updated_at) {
+        latest = { month: recordMonth, updated_at: record.updated_at };
+      }
+    }
+  }
+
+  return { ok: true, data: latest ? latest.month : null };
+}
+
+async function copyMonthData(fromMonth, toMonth) {
+  if (!fromMonth || fromMonth === toMonth) {
+    return { ok: true, data: false };
+  }
+
+  const [accountsResult, incomeResult, expensesResult, goalsResult] = await Promise.all([
+    getMonthData('accounts', fromMonth, 'bank_name'),
+    getMonthData('income_sources', fromMonth, 'source_name'),
+    getMonthData('planned_expenses', fromMonth, 'description'),
+    getMonthData('goals', fromMonth, 'target_date')
+  ]);
+
+  const results = [accountsResult, incomeResult, expensesResult, goalsResult];
+  const failed = results.find(result => !result.ok);
+  if (failed) {
+    return failed;
+  }
+
+  const accountIdMap = new Map();
+  const toStartDate = `${toMonth}-01`;
+
+  for (const account of accountsResult.data) {
+    const newRecord = {
+      bank_name: account.bank_name,
+      account_type: account.account_type,
+      starting_balance: account.starting_balance,
+      starting_balance_date: account.starting_balance_date,
+      effective_from: toStartDate
+    };
+    const insertResult = await db.insert('accounts', newRecord);
+    if (!insertResult.ok) {
+      return insertResult;
+    }
+    accountIdMap.set(account.id, insertResult.data.id);
+  }
+
+  for (const income of incomeResult.data) {
+    const newRecord = {
+      source_name: income.source_name,
+      income_type: income.income_type,
+      amount: income.amount,
+      account_id: accountIdMap.get(income.account_id) || income.account_id,
+      pay_dates: income.pay_dates,
+      effective_from: toStartDate
+    };
+    const insertResult = await db.insert('income_sources', newRecord);
+    if (!insertResult.ok) {
+      return insertResult;
+    }
+  }
+
+  for (const expense of expensesResult.data) {
+    const newRecord = {
+      description: expense.description,
+      amount: expense.amount,
+      bucket_id: expense.bucket_id,
+      category_id: expense.category_id,
+      account_id: accountIdMap.get(expense.account_id) || expense.account_id,
+      due_dates: expense.due_dates,
+      is_recurring: expense.is_recurring,
+      recurrence_end_date: expense.recurrence_end_date,
+      effective_from: toStartDate
+    };
+    const insertResult = await db.insert('planned_expenses', newRecord);
+    if (!insertResult.ok) {
+      return insertResult;
+    }
+  }
+
+  for (const goal of goalsResult.data) {
+    const newRecord = {
+      name: goal.name,
+      target_amount: goal.target_amount,
+      target_date: goal.target_date,
+      funded_amount: goal.funded_amount,
+      effective_from: toStartDate
+    };
+    const insertResult = await db.insert('goals', newRecord);
+    if (!insertResult.ok) {
+      return insertResult;
+    }
+  }
+
+  return { ok: true, data: true };
+}
+
+async function ensureMonthData(monthString) {
+  if (!monthString) {
+    return { ok: true, data: false };
+  }
+
+  const hasDataResult = await monthHasData(monthString);
+  if (!hasDataResult.ok) {
+    return hasDataResult;
+  }
+
+  if (hasDataResult.data) {
+    return { ok: true, data: false };
+  }
+
+  const latestMonthResult = await getLatestEditedMonthBefore(monthString);
+  if (!latestMonthResult.ok) {
+    return latestMonthResult;
+  }
+
+  const latestMonth = latestMonthResult.data;
+  if (!latestMonth) {
+    return { ok: true, data: false };
+  }
+
+  return await copyMonthData(latestMonth, monthString);
+}
+
+/**
+ * Gets budget data for a specific month, applying forward carry rules.
+ * @param {string} monthString - Month in YYYY-MM format
+ * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
+ */
+async function getBudgetDataForMonth(monthString) {
+  if (!monthString) {
+    const now = new Date();
+    monthString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+  const ensureResult = await ensureMonthData(monthString);
+  if (!ensureResult.ok) {
+    return ensureResult;
+  }
+
+  const [accounts, incomeSources, buckets, categories, plannedExpenses, goals] = await Promise.all([
+    getMonthData('accounts', monthString, 'bank_name'),
+    getMonthData('income_sources', monthString, 'source_name'),
+    getBuckets(),
+    getCategories(),
+    getMonthData('planned_expenses', monthString, 'description'),
+    getMonthData('goals', monthString, 'target_date')
+  ]);
+
+  const results = [accounts, incomeSources, buckets, categories, plannedExpenses, goals];
+  const failed = results.find(result => !result.ok);
+  if (failed) {
+    return failed;
+  }
+
+  return {
+    ok: true,
+    data: {
+      accounts: accounts.data,
+      incomeSources: incomeSources.data,
+      buckets: buckets.data,
+      categories: categories.data,
+      plannedExpenses: plannedExpenses.data,
+      goals: goals.data
+    }
+  };
+}
+
+// ============================================================
 // Exports
 // ============================================================
 
@@ -491,5 +734,8 @@ module.exports = {
   
   // Utilities
   getBucketTotal,
-  getBudgetSummary
+  getBudgetSummary,
+
+  // Month-based
+  getBudgetDataForMonth
 };

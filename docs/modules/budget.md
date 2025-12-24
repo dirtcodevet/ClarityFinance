@@ -60,6 +60,7 @@ All Budget operations are exposed via IPC handlers in `main.js`:
 | `budget:fundGoal` | `id, amount` | `{ ok, data: Goal }` |
 | `budget:getBucketTotal` | `bucketId` | `{ ok, data: number }` |
 | `budget:getBudgetSummary` | - | `{ ok, data: BudgetSummary }` |
+| `budget:getBudgetDataForMonth` | `month` (YYYY-MM) | `{ ok, data: { accounts, incomeSources, buckets, categories, plannedExpenses, goals } }` |
 
 ## Events Emitted
 
@@ -118,6 +119,12 @@ if (result.ok) {
 
 - **Core:** database.js, events.js, config.js
 - **No cross-module imports** - follows MODULE_GUIDELINES.md
+
+## Month-Based Budget Data
+
+Budget items with `effective_from` are scoped to a specific month. When the UI requests `budget:getBudgetDataForMonth`, the service ensures:
+- If the requested month has no budget data yet, it copies the most recently edited prior month forward.
+- Past months never inherit data from future months.
 
 ## Notes
 

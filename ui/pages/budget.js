@@ -19,7 +19,8 @@ const state = {
   categories: [],
   plannedExpenses: [],
   goals: [],
-  pendingDelete: null
+  pendingDelete: null,
+  currentMonth: null
 };
 
 // ============================================================
@@ -27,6 +28,7 @@ const state = {
 // ============================================================
 
 const budgetApi = {
+  getBudgetDataForMonth: (month) => ipcRenderer.invoke('budget:getBudgetDataForMonth', month),
   getAccounts: () => ipcRenderer.invoke('budget:getAccounts'),
   createAccount: (data) => ipcRenderer.invoke('budget:createAccount', data),
   updateAccount: (id, changes) => ipcRenderer.invoke('budget:updateAccount', id, changes),
@@ -105,33 +107,43 @@ function closeModal(modalId) {
 // Data Loading
 // ============================================================
 
-async function loadBudgetData() {
+async function loadBudgetData(monthString = null) {
   console.log('[Budget] Loading data...');
-  const [accountsResult, incomeResult, bucketsResult, categoriesResult, expensesResult, goalsResult, balancesResult] = await Promise.all([
-    budgetApi.getAccounts(), budgetApi.getIncomeSources(), budgetApi.getBuckets(),
-    budgetApi.getCategories(), budgetApi.getPlannedExpenses(), budgetApi.getGoals(),
+  if (monthString) {
+    state.currentMonth = monthString;
+  }
+  let activeMonth = state.currentMonth;
+  if (!activeMonth) {
+    const now = new Date();
+    activeMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    state.currentMonth = activeMonth;
+  }
+  const [budgetResult, balancesResult] = await Promise.all([
+    budgetApi.getBudgetDataForMonth(activeMonth),
     dashboardApi.getAccountBalances()
   ]);
 
-  if (!accountsResult.ok || !incomeResult.ok || !bucketsResult.ok || !categoriesResult.ok || !expensesResult.ok || !goalsResult.ok) {
+  if (!budgetResult.ok) {
     showError('Failed to load data'); return;
   }
 
+  const { accounts, incomeSources, buckets, categories, plannedExpenses, goals } = budgetResult.data;
+
   // Merge current balances with account data
-  const accounts = accountsResult.data;
+  const accountList = accounts;
   if (balancesResult.ok && balancesResult.data && balancesResult.data.accounts) {
     const balanceMap = new Map(balancesResult.data.accounts.map(b => [b.id, b.currentBalance]));
-    accounts.forEach(acc => {
+    accountList.forEach(acc => {
       acc.current_balance = balanceMap.get(acc.id) || acc.starting_balance || 0;
     });
   }
 
-  state.accounts = accounts;
-  state.incomeSources = incomeResult.data;
-  state.buckets = bucketsResult.data;
-  state.categories = categoriesResult.data;
-  state.plannedExpenses = expensesResult.data;
-  state.goals = goalsResult.data;
+  state.accounts = accountList;
+  state.incomeSources = incomeSources;
+  state.buckets = buckets;
+  state.categories = categories;
+  state.plannedExpenses = plannedExpenses;
+  state.goals = goals;
 
   renderAccounts(); renderIncomeSources(); renderCategories(); renderBuckets(); renderGoals(); updateDropdowns();
   console.log('[Budget] Data loaded.');
@@ -216,7 +228,12 @@ async function addAccount() {
   const type = document.getElementById('account-type').value;
   const balance = parseFloat(document.getElementById('account-balance').value) || 0;
   if (!name) { showError('Please enter a bank name'); return; }
-  const result = await budgetApi.createAccount({ bank_name: name, account_type: type, starting_balance: balance });
+  const result = await budgetApi.createAccount({
+    bank_name: name,
+    account_type: type,
+    starting_balance: balance,
+    effective_from: getMonthStartDate()
+  });
   if (!result.ok) { showError(result.error.message); return; }
   document.getElementById('account-name').value = ''; document.getElementById('account-balance').value = '';
   await loadBudgetData();
@@ -247,7 +264,14 @@ async function addIncomeSource() {
   if (!name) { showError('Please enter a source name'); return; }
   if (!accountId) { showError('Please select an account'); return; }
   if (amount <= 0) { showError('Please enter a valid amount'); return; }
-  const result = await budgetApi.createIncomeSource({ source_name: name, income_type: type, amount, account_id: accountId, pay_dates: '[]' });
+  const result = await budgetApi.createIncomeSource({
+    source_name: name,
+    income_type: type,
+    amount,
+    account_id: accountId,
+    pay_dates: '[]',
+    effective_from: getMonthStartDate()
+  });
   if (!result.ok) { showError(result.error.message); return; }
   document.getElementById('income-name').value = ''; document.getElementById('income-amount').value = '';
   await loadBudgetData();
@@ -312,7 +336,16 @@ async function addPlannedExpense() {
   if (!accountId) { showError('Please select an account'); return; }
   const isRecurring = document.getElementById('add-expense-recurring').checked ? 1 : 0;
   const endDate = document.getElementById('add-expense-end-date').value || null;
-  const data = { description, amount, bucket_id: bucketId, category_id: categoryId, account_id: accountId, due_dates: datesToJson(datesStr), is_recurring: isRecurring };
+  const data = {
+    description,
+    amount,
+    bucket_id: bucketId,
+    category_id: categoryId,
+    account_id: accountId,
+    due_dates: datesToJson(datesStr),
+    is_recurring: isRecurring,
+    effective_from: getMonthStartDate()
+  };
   if (endDate) data.recurrence_end_date = endDate;
   const result = await budgetApi.createPlannedExpense(data);
   if (!result.ok) { showError(result.error.message); return; }
@@ -351,7 +384,13 @@ async function addGoal() {
   if (!name) { showError('Please enter a goal name'); return; }
   if (target <= 0) { showError('Please enter a valid target'); return; }
   if (!date) { showError('Please select a date'); return; }
-  const result = await budgetApi.createGoal({ name, target_amount: target, target_date: date, funded_amount: 0 });
+  const result = await budgetApi.createGoal({
+    name,
+    target_amount: target,
+    target_date: date,
+    funded_amount: 0,
+    effective_from: getMonthStartDate()
+  });
   if (!result.ok) { showError(result.error.message); return; }
   document.getElementById('goal-name').value = ''; document.getElementById('goal-target').value = ''; document.getElementById('goal-date').value = '';
   await loadBudgetData();
@@ -581,4 +620,19 @@ function initializeBudgetPage() {
   });
 }
 
-module.exports = { initializeBudgetPage, loadBudgetData, openModal, closeModal };
+function setCurrentMonth(monthString) {
+  state.currentMonth = monthString;
+}
+
+function getMonthStartDate() {
+  if (!state.currentMonth) return new Date().toISOString().split('T')[0];
+  return `${state.currentMonth}-01`;
+}
+
+module.exports = {
+  initializeBudgetPage,
+  loadBudgetData,
+  openModal,
+  closeModal,
+  setCurrentMonth
+};
