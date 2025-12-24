@@ -19,6 +19,7 @@ module.exports = {
   getSessionData: service.getSessionData,
   loadCurrentBudgetData: service.loadCurrentBudgetData,
   resetSession: service.resetSession,
+  replaceSessionData: service.replaceSessionData,
 
   // Session modifications - accounts
   updateSessionAccount: service.updateSessionAccount,

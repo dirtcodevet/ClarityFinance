@@ -39,6 +39,7 @@ All Budget operations are exposed via IPC handlers in `main.js`:
 | `budget:createAccount` | `data` | `{ ok, data: Account }` |
 | `budget:updateAccount` | `id, changes` | `{ ok, data: Account }` |
 | `budget:deleteAccount` | `id` | `{ ok, data: { id } }` |
+| `budget:restoreRecord` | `table, id` | `{ ok, data: Record }` |
 | `budget:getIncomeSources` | - | `{ ok, data: IncomeSource[] }` |
 | `budget:createIncomeSource` | `data` | `{ ok, data: IncomeSource }` |
 | `budget:updateIncomeSource` | `id, changes` | `{ ok, data: IncomeSource }` |
@@ -122,7 +123,10 @@ if (result.ok) {
 
 ## Month-Based Budget Data
 
+// codex/review-project-documents-and-codebase-44xjc9
+Budget items with `effective_from` (including categories) are scoped to a specific month. When the UI requests `budget:getBudgetDataForMonth`, the service ensures:
 Budget items with `effective_from` are scoped to a specific month. When the UI requests `budget:getBudgetDataForMonth`, the service ensures:
+Test_Codex
 - If the requested month has no budget data yet, it copies the most recently edited prior month forward.
 - Past months never inherit data from future months.
 

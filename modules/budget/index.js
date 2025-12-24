@@ -49,6 +49,7 @@ module.exports = {
   updateGoal: service.updateGoal,
   deleteGoal: service.deleteGoal,
   fundGoal: service.fundGoal,
+  restoreRecord: service.restoreRecord,
   
   // Utilities
   getBucketTotal: service.getBucketTotal,

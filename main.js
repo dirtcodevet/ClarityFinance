@@ -222,6 +222,10 @@ ipcMain.handle("budget:deleteAccount", async (event, id) => {
   return budget.deleteAccount(id);
 });
 
+ipcMain.handle("budget:restoreRecord", async (event, table, id) => {
+  return budget.restoreRecord(table, id);
+});
+
 // --- Income Sources ---
 
 ipcMain.handle("budget:getIncomeSources", async () => {
@@ -406,6 +410,10 @@ ipcMain.handle("planning:loadCurrentBudgetData", async () => {
 
 ipcMain.handle("planning:resetSession", async () => {
   return planning.resetSession();
+});
+
+ipcMain.handle("planning:replaceSessionData", async (event, data) => {
+  return planning.replaceSessionData(data);
 });
 
 // --- Session Modifications - Accounts ---
