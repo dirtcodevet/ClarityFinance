@@ -1322,6 +1322,7 @@ async function initializeLedgerPage() {
   
   // Set up UI components
   setupDateRangeControls();
+  setupMonthRefreshButton();
   setupQuickAddBar();
   setupModals();
   setupAddTransactionButton();
@@ -1332,6 +1333,31 @@ async function initializeLedgerPage() {
   await loadTransactions();
 
   console.log('[Ledger] Page initialized.');
+}
+
+async function refreshDateRangeToCurrentMonth() {
+  const monthResult = await ipcRenderer.invoke('config:get', 'currentMonth');
+  const monthString = monthResult.ok && monthResult.data ? monthResult.data : null;
+  const monthDate = monthString ? new Date(`${monthString}-01`) : new Date();
+
+  const startDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+  const endDate = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+
+  ledgerState.startDate = formatDateForInput(startDate);
+  ledgerState.endDate = formatDateForInput(endDate);
+
+  const startDateInput = document.getElementById('ledger-start-date');
+  const endDateInput = document.getElementById('ledger-end-date');
+  if (startDateInput) startDateInput.value = ledgerState.startDate;
+  if (endDateInput) endDateInput.value = ledgerState.endDate;
+
+  await loadTransactions();
+}
+
+function setupMonthRefreshButton() {
+  const refreshButton = document.getElementById('ledger-refresh-month');
+  if (!refreshButton) return;
+  refreshButton.addEventListener('click', refreshDateRangeToCurrentMonth);
 }
 
 /**
@@ -1350,8 +1376,8 @@ async function reloadForMonth(monthDate) {
   ledgerState.endDate = formatDateForInput(endDate);
 
   // Update date range inputs in UI
-  const startDateInput = document.getElementById('startDate');
-  const endDateInput = document.getElementById('endDate');
+  const startDateInput = document.getElementById('ledger-start-date');
+  const endDateInput = document.getElementById('ledger-end-date');
   if (startDateInput) startDateInput.value = ledgerState.startDate;
   if (endDateInput) endDateInput.value = ledgerState.endDate;
 

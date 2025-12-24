@@ -165,7 +165,7 @@ function reloadCurrentPage() {
   const monthString = state.currentMonth.toISOString().slice(0, 7);
 
   if (page === 'ledger' && state.pageInitialized.ledger) {
-    ledgerPage.reloadForMonth(state.currentMonth);
+    // Ledger date range is user-controlled; use refresh button to realign.
   } else if (page === 'budget') {
     budgetPage.loadBudgetData(monthString);
   } else if (page === 'dashboard' && state.pageInitialized.dashboard) {

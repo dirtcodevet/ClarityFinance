@@ -462,9 +462,19 @@ function showConfirmationModal(title, message) {
         overlay.remove();
         resolve(false);
         document.removeEventListener('keydown', handleEscape);
+        document.removeEventListener('keydown', handleEnter);
+      }
+    };
+    const handleEnter = (e) => {
+      if (e.key === 'Enter') {
+        overlay.remove();
+        resolve(true);
+        document.removeEventListener('keydown', handleEscape);
+        document.removeEventListener('keydown', handleEnter);
       }
     };
     document.addEventListener('keydown', handleEscape);
+    document.addEventListener('keydown', handleEnter);
   });
 }
 

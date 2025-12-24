@@ -197,6 +197,9 @@ async function getCategories(bucketId = null) {
  * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
  */
 async function createCategory(data) {
+  if (!data.effective_from) {
+    data.effective_from = new Date().toISOString().split('T')[0];
+  }
   const result = await db.insert('categories', data);
   
   if (result.ok) {
@@ -359,6 +362,60 @@ async function deleteGoal(id) {
   }
   
   return result;
+}
+
+// ============================================================
+// Restore Functions (Undo Support)
+// ============================================================
+
+/**
+ * Restores a soft-deleted record by table name.
+ * @param {string} table - Table name
+ * @param {number} id - Record ID
+ * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
+ */
+async function restoreRecord(table, id) {
+  const allowedTables = new Set([
+    'accounts',
+    'income_sources',
+    'categories',
+    'planned_expenses',
+    'goals'
+  ]);
+
+  if (!allowedTables.has(table)) {
+    return { ok: false, error: { code: 'INVALID_TABLE', message: `Restore not allowed for table: ${table}` } };
+  }
+
+  const result = await db.execute(
+    `UPDATE ${table} SET is_deleted = 0, updated_at = ? WHERE id = ?`,
+    [new Date().toISOString(), id]
+  );
+
+  if (!result.ok) {
+    return result;
+  }
+
+  const recordResult = await db.getById(table, id);
+  if (!recordResult.ok) {
+    return recordResult;
+  }
+
+  const record = recordResult.data;
+
+  if (table === 'accounts') {
+    events.emit('account:updated', { account: record, changes: { is_deleted: 0 } });
+  } else if (table === 'income_sources') {
+    events.emit('income-source:updated', { incomeSource: record, changes: { is_deleted: 0 } });
+  } else if (table === 'categories') {
+    events.emit('category:updated', { category: record, changes: { is_deleted: 0 } });
+  } else if (table === 'planned_expenses') {
+    events.emit('planned-expense:updated', { plannedExpense: record, changes: { is_deleted: 0 } });
+  } else if (table === 'goals') {
+    events.emit('goal:updated', { goal: record, changes: { is_deleted: 0 } });
+  }
+
+  return { ok: true, data: record };
 }
 
 /**
@@ -731,6 +788,7 @@ module.exports = {
   updateGoal,
   deleteGoal,
   fundGoal,
+  restoreRecord,
   
   // Utilities
   getBucketTotal,

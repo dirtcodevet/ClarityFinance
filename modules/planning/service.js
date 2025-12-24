@@ -10,6 +10,7 @@
 
 const db = require('../../core/database');
 const events = require('../../core/events');
+const config = require('../../core/config');
 
 // In-memory store for current planning session data
 let planningSessionData = {
@@ -60,37 +61,8 @@ async function initialize() {
  * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
  */
 async function loadCurrentBudgetData() {
-  // Load all budget data from database
-  const [accounts, incomeSources, buckets, categories, plannedExpenses, goals] = await Promise.all([
-    db.query('accounts', {}, { orderBy: 'bank_name' }),
-    db.query('income_sources', {}, { orderBy: 'source_name' }),
-    db.query('buckets', {}, { orderBy: 'sort_order' }),
-    db.query('categories', {}, { orderBy: 'name' }),
-    db.query('planned_expenses', {}, { orderBy: 'description' }),
-    db.query('goals', {}, { orderBy: 'name' })
-  ]);
-
-  // Check for errors
-  if (!accounts.ok) return accounts;
-  if (!incomeSources.ok) return incomeSources;
-  if (!buckets.ok) return buckets;
-  if (!categories.ok) return categories;
-  if (!plannedExpenses.ok) return plannedExpenses;
-  if (!goals.ok) return goals;
-
-  // Store in session (deep copy to prevent mutations)
-  planningSessionData = {
-    accounts: JSON.parse(JSON.stringify(accounts.data)),
-    incomeSources: JSON.parse(JSON.stringify(incomeSources.data)),
-    buckets: JSON.parse(JSON.stringify(buckets.data)),
-    categories: JSON.parse(JSON.stringify(categories.data)),
-    plannedExpenses: JSON.parse(JSON.stringify(plannedExpenses.data)),
-    goals: JSON.parse(JSON.stringify(goals.data))
-  };
-
-  events.emit('planning:data-loaded', { timestamp: new Date().toISOString() });
-
-  return { ok: true, data: planningSessionData };
+  const monthString = getCurrentMonthString();
+  return await loadBudgetDataForMonth(monthString);
 }
 
 /**
@@ -118,6 +90,135 @@ async function resetSession() {
   }
 
   return result;
+}
+
+/**
+ * Replaces the planning session data (used for undo/redo).
+ * @param {object} data - Full session data
+ * @returns {Promise<{ok: boolean, data?: object, error?: object}>}
+ */
+async function replaceSessionData(data) {
+  if (!data) {
+    return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Session data is required' } };
+  }
+
+  planningSessionData = JSON.parse(JSON.stringify(data));
+  events.emit('planning:data-loaded', { timestamp: new Date().toISOString() });
+  return { ok: true, data: planningSessionData };
+}
+
+// ============================================================
+// Month-Based Budget Loading (Sandbox)
+// ============================================================
+
+function getCurrentMonthString() {
+  const result = config.get('currentMonth');
+  if (result.ok && result.data) {
+    return result.data;
+  }
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getMonthRange(monthString) {
+  const [year, month] = monthString.split('-').map(Number);
+  const startDate = `${monthString}-01`;
+  const endDay = new Date(year, month, 0).getDate();
+  const endDate = `${monthString}-${String(endDay).padStart(2, '0')}`;
+  const endDateTime = `${endDate}T23:59:59.999Z`;
+  return { startDate, endDateTime };
+}
+
+async function getMonthData(table, monthString, orderBy) {
+  const { startDate, endDateTime } = getMonthRange(monthString);
+  return await db.query(
+    table,
+    { effective_from: { between: [startDate, endDateTime] } },
+    { orderBy }
+  );
+}
+
+function normalizeMonthString(dateString) {
+  if (!dateString) return null;
+  return dateString.slice(0, 7);
+}
+
+async function getLatestEditedMonthBefore(monthString) {
+  const { startDate } = getMonthRange(monthString);
+  const tables = ['accounts', 'income_sources', 'categories', 'planned_expenses', 'goals'];
+  let latest = null;
+
+  for (const table of tables) {
+    const result = await db.query(
+      table,
+      { effective_from: { lt: startDate } },
+      { orderBy: 'updated_at', order: 'desc', limit: 1 }
+    );
+
+    if (!result.ok) {
+      return result;
+    }
+
+    if (result.data.length > 0) {
+      const record = result.data[0];
+      const recordMonth = normalizeMonthString(record.effective_from);
+      if (!recordMonth) {
+        continue;
+      }
+      if (!latest || record.updated_at > latest.updated_at) {
+        latest = { month: recordMonth, updated_at: record.updated_at };
+      }
+    }
+  }
+
+  return { ok: true, data: latest ? latest.month : null };
+}
+
+async function loadBudgetDataForMonth(monthString) {
+  const [accounts, incomeSources, buckets, categories, plannedExpenses, goals] = await Promise.all([
+    getMonthData('accounts', monthString, 'bank_name'),
+    getMonthData('income_sources', monthString, 'source_name'),
+    db.query('buckets', {}, { orderBy: 'sort_order' }),
+    getMonthData('categories', monthString, 'name'),
+    getMonthData('planned_expenses', monthString, 'description'),
+    getMonthData('goals', monthString, 'name')
+  ]);
+
+  const results = [accounts, incomeSources, buckets, categories, plannedExpenses, goals];
+  const failed = results.find(result => !result.ok);
+  if (failed) {
+    return failed;
+  }
+
+  const isEmpty = accounts.data.length === 0
+    && incomeSources.data.length === 0
+    && categories.data.length === 0
+    && plannedExpenses.data.length === 0
+    && goals.data.length === 0;
+
+  if (isEmpty) {
+    const latestMonthResult = await getLatestEditedMonthBefore(monthString);
+    if (!latestMonthResult.ok) {
+      return latestMonthResult;
+    }
+    const fallbackMonth = latestMonthResult.data;
+    if (fallbackMonth) {
+      return await loadBudgetDataForMonth(fallbackMonth);
+    }
+  }
+
+  planningSessionData = {
+    accounts: JSON.parse(JSON.stringify(accounts.data)),
+    incomeSources: JSON.parse(JSON.stringify(incomeSources.data)),
+    buckets: JSON.parse(JSON.stringify(buckets.data)),
+    categories: JSON.parse(JSON.stringify(categories.data)),
+    plannedExpenses: JSON.parse(JSON.stringify(plannedExpenses.data)),
+    goals: JSON.parse(JSON.stringify(goals.data))
+  };
+
+  events.emit('planning:data-loaded', { timestamp: new Date().toISOString() });
+
+  return { ok: true, data: planningSessionData };
 }
 
 // ============================================================
@@ -242,10 +343,12 @@ async function updateSessionGoal(id, changes) {
 async function createSessionAccount(data) {
   // Generate a temporary ID (negative to avoid conflicts)
   const tempId = -(planningSessionData.accounts.length + 1);
+  const effectiveFrom = data.effective_from || `${getCurrentMonthString()}-01`;
 
   const newAccount = {
     id: tempId,
     ...data,
+    effective_from: effectiveFrom,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_deleted: 0
@@ -263,10 +366,12 @@ async function createSessionAccount(data) {
  */
 async function createSessionIncomeSource(data) {
   const tempId = -(planningSessionData.incomeSources.length + 1);
+  const effectiveFrom = data.effective_from || `${getCurrentMonthString()}-01`;
 
   const newIncomeSource = {
     id: tempId,
     ...data,
+    effective_from: effectiveFrom,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_deleted: 0
@@ -284,10 +389,12 @@ async function createSessionIncomeSource(data) {
  */
 async function createSessionCategory(data) {
   const tempId = -(planningSessionData.categories.length + 1);
+  const effectiveFrom = data.effective_from || `${getCurrentMonthString()}-01`;
 
   const newCategory = {
     id: tempId,
     ...data,
+    effective_from: effectiveFrom,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_deleted: 0
@@ -305,10 +412,12 @@ async function createSessionCategory(data) {
  */
 async function createSessionPlannedExpense(data) {
   const tempId = -(planningSessionData.plannedExpenses.length + 1);
+  const effectiveFrom = data.effective_from || `${getCurrentMonthString()}-01`;
 
   const newExpense = {
     id: tempId,
     ...data,
+    effective_from: effectiveFrom,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_deleted: 0
@@ -326,10 +435,12 @@ async function createSessionPlannedExpense(data) {
  */
 async function createSessionGoal(data) {
   const tempId = -(planningSessionData.goals.length + 1);
+  const effectiveFrom = data.effective_from || `${getCurrentMonthString()}-01`;
 
   const newGoal = {
     id: tempId,
     ...data,
+    effective_from: effectiveFrom,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     is_deleted: 0

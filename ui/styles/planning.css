@@ -165,6 +165,22 @@
   height: 100%;
 }
 
+.planning-chart-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(15, 23, 42, 0.9);
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  transform: translate(-50%, -100%);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.2);
+  display: none;
+  z-index: 10;
+}
+
 /* Account legend/toggles */
 .planning-account-toggles {
   display: flex;

@@ -118,6 +118,7 @@ Stores expense categories created by user.
 |-------|------|----------|-------------|-------------|
 | `name` | string | yes | min 1 char | Category name (e.g., "Groceries") |
 | `bucket_id` | integer | yes | valid bucket | Which bucket this category belongs to |
+| `effective_from` | string | no | YYYY-MM-DD | First month this category applies to |
 
 **Example:**
 ```javascript

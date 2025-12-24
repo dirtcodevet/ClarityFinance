@@ -441,6 +441,47 @@ function renderBalanceProjectionChart() {
   ctx.fillRect(actualLegendX, legendY - 8, 20, 3);
   ctx.fillStyle = '#0F172A';
   ctx.fillText('Actual', actualLegendX + 25, legendY - 3);
+
+  setupDashboardProjectionTooltip(container, canvas, data, padding, chartWidth, chartHeight, minValue, maxValue);
+}
+
+function setupDashboardProjectionTooltip(container, canvas, data, padding, chartWidth, chartHeight, minValue, maxValue) {
+  let tooltip = container.querySelector('.dashboard-chart-tooltip');
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.className = 'dashboard-chart-tooltip';
+    container.appendChild(tooltip);
+  }
+
+  const xScale = (index) => padding.left + (index / (data.projected.length - 1)) * chartWidth;
+  const yScale = (value) => padding.top + chartHeight - ((value - minValue) / (maxValue - minValue)) * chartHeight;
+
+  canvas.onmousemove = (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const relativeX = Math.min(Math.max(x - padding.left, 0), chartWidth);
+    const index = Math.round((relativeX / chartWidth) * (data.projected.length - 1));
+    const date = data.projected[index]?.date;
+    if (!date) return;
+
+    const projected = data.projected[index]?.balance ?? 0;
+    const actual = data.actual[index]?.balance ?? 0;
+
+    const xPos = xScale(index);
+    const yPos = yScale(actual);
+    tooltip.innerHTML = `
+      <div>${formatDate(date)}</div>
+      <div>Projected: ${formatCurrencyFull(projected)}</div>
+      <div>Actual: ${formatCurrencyFull(actual)}</div>
+    `;
+    tooltip.style.left = `${xPos}px`;
+    tooltip.style.top = `${yPos}px`;
+    tooltip.style.display = 'block';
+  };
+
+  canvas.onmouseleave = () => {
+    tooltip.style.display = 'none';
+  };
 }
 
 // ============================================================
