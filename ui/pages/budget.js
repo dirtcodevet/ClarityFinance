@@ -88,6 +88,18 @@ function datesToJson(datesStr) {
 
 function showError(message) { console.error('[Budget] Error:', message); /* No alert - silent validation */ }
 
+function normalizeMonthValue(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString().slice(0, 7);
+  if (typeof value === 'string') {
+    if (/^\d{4}-\d{2}$/.test(value)) return value;
+    if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 7);
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 7);
+  }
+  return null;
+}
+
 function getBucketColorClass(bucketKey) {
   const colorMap = { 'major_fixed': 'header-blue', 'major_variable': 'header-purple', 'minor_fixed': 'header-green', 'minor_variable': 'header-amber', 'goals': 'header-pink' };
   return colorMap[bucketKey] || 'header-blue';
@@ -173,13 +185,16 @@ function closeModal(modalId) {
 
 async function loadBudgetData(monthString = null) {
   console.log('[Budget] Loading data...');
-  if (monthString) {
-    state.currentMonth = monthString;
+  const normalizedMonth = normalizeMonthValue(monthString);
+  if (normalizedMonth) {
+    state.currentMonth = normalizedMonth;
   }
-  let activeMonth = state.currentMonth;
+  let activeMonth = normalizeMonthValue(state.currentMonth);
   if (!activeMonth) {
     const now = new Date();
     activeMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    state.currentMonth = activeMonth;
+  } else {
     state.currentMonth = activeMonth;
   }
   const [budgetResult, balancesResult] = await Promise.all([
@@ -188,7 +203,8 @@ async function loadBudgetData(monthString = null) {
   ]);
 
   if (!budgetResult.ok) {
-    showError('Failed to load data'); return;
+    showError(budgetResult.error?.message || 'Failed to load data');
+    return;
   }
 
   const { accounts, incomeSources, buckets, categories, plannedExpenses, goals } = budgetResult.data;
@@ -827,12 +843,13 @@ function initializeBudgetPage() {
 }
 
 function setCurrentMonth(monthString) {
-  state.currentMonth = monthString;
+  state.currentMonth = normalizeMonthValue(monthString) || monthString;
 }
 
 function getMonthStartDate() {
-  if (!state.currentMonth) return new Date().toISOString().split('T')[0];
-  return `${state.currentMonth}-01`;
+  const activeMonth = normalizeMonthValue(state.currentMonth);
+  if (!activeMonth) return new Date().toISOString().split('T')[0];
+  return `${activeMonth}-01`;
 }
 
 module.exports = {
