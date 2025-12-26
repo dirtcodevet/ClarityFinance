@@ -20,7 +20,10 @@ const state = {
   plannedExpenses: [],
   goals: [],
   pendingDelete: null,
-  currentMonth: null
+  currentMonth: null,
+  undoStack: [],
+  redoStack: [],
+  isReplaying: false
 };
 
 // ============================================================
