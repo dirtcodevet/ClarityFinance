@@ -147,7 +147,7 @@ Dashboard may only show $10 instead of the sum of all occurrences within the sel
 **Module:** All pages
 **Files:** `ui/app.js`, all page modules, budget service
 
-**Status:** ✅ Resolved
+**Status:** ❌ Unresolved (still reproduces)
 
 ---
 
@@ -218,13 +218,6 @@ Pay Dates: [Click to select dates]
 ---
 
 ## Resolved Issues
-
-### Issue #6: Month Selector Doesn't Filter Data + Data Should Carry Forward
-**Resolution:**
-- Month selector now reloads Budget data per selected month.
-- Budget data carries forward only to future months with no data, never backward.
-
----
 
 ## Polish Pass Checklist
 
