@@ -111,6 +111,12 @@ function getMonthlyExpenseTotal(expense) {
 
 function recordUndoAction(action) {
   if (state.isReplaying) return;
+  if (!Array.isArray(state.undoStack)) {
+    state.undoStack = [];
+  }
+  if (!Array.isArray(state.redoStack)) {
+    state.redoStack = [];
+  }
   state.undoStack.push(action);
   state.redoStack = [];
 }
